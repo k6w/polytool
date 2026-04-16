@@ -10,6 +10,9 @@ from __future__ import annotations
 import typer
 
 from polytool import __version__
+from polytool.core.errors import install_excepthook
+
+install_excepthook()
 
 app = typer.Typer(
     name="polytool",
