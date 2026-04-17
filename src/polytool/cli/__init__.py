@@ -10,6 +10,7 @@ from __future__ import annotations
 import typer
 
 from polytool import __version__
+from polytool.cli import enc
 from polytool.core.errors import install_excepthook
 
 install_excepthook()
@@ -41,6 +42,9 @@ def main(
     ),
 ) -> None:
     """polytool — one-binary CLI bundling 26 everyday utilities."""
+
+
+app.add_typer(enc.app, name="enc")
 
 
 __all__ = ["app"]
