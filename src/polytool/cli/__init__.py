@@ -10,7 +10,7 @@ from __future__ import annotations
 import typer
 
 from polytool import __version__
-from polytool.cli import enc, gen
+from polytool.cli import color, enc, gen
 from polytool.core.errors import install_excepthook
 
 install_excepthook()
@@ -46,6 +46,7 @@ def main(
 
 app.add_typer(enc.app, name="enc")
 app.add_typer(gen.app, name="gen")
+app.add_typer(color.app, name="color")
 
 
 __all__ = ["app"]
