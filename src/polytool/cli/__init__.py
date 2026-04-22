@@ -10,7 +10,7 @@ from __future__ import annotations
 import typer
 
 from polytool import __version__
-from polytool.cli import color, convert, data, enc, gen, text
+from polytool.cli import color, convert, data, enc, gen, qr, text
 from polytool.core.errors import install_excepthook
 
 install_excepthook()
@@ -50,6 +50,7 @@ app.add_typer(color.app, name="color")
 app.add_typer(convert.app, name="convert")
 app.add_typer(text.app, name="text")
 app.add_typer(data.app, name="data")
+app.add_typer(qr.app, name="qr")
 
 
 __all__ = ["app"]
