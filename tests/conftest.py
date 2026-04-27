@@ -26,3 +26,27 @@ def cli_app():
 @pytest.fixture
 def fixtures_dir() -> Path:
     return FIXTURES
+
+
+@pytest.fixture
+def tiny_png(tmp_path: Path) -> Path:
+    """A 32x32 RGB PNG with a simple pattern."""
+    from PIL import Image, ImageDraw
+
+    p = tmp_path / "tiny.png"
+    img = Image.new("RGB", (32, 32), "white")
+    d = ImageDraw.Draw(img)
+    d.rectangle((4, 4, 27, 27), fill="red")
+    d.ellipse((10, 10, 22, 22), fill="blue")
+    img.save(p)
+    return p
+
+
+@pytest.fixture
+def tiny_jpg(tmp_path: Path) -> Path:
+    from PIL import Image
+
+    p = tmp_path / "tiny.jpg"
+    img = Image.new("RGB", (32, 32), "lightblue")
+    img.save(p, quality=80)
+    return p
