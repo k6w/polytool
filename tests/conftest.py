@@ -50,3 +50,18 @@ def tiny_jpg(tmp_path: Path) -> Path:
     img = Image.new("RGB", (32, 32), "lightblue")
     img.save(p, quality=80)
     return p
+
+
+@pytest.fixture
+def tiny_pdf(tmp_path: Path) -> Path:
+    """A 2-page PDF built on the fly with PyMuPDF."""
+    import pymupdf
+
+    p = tmp_path / "tiny.pdf"
+    doc = pymupdf.open()
+    for n in (1, 2):
+        page = doc.new_page(width=200, height=200)
+        page.insert_text((20, 30), f"page {n} hello world", fontsize=12)
+    doc.save(p)
+    doc.close()
+    return p
