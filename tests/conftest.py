@@ -65,3 +65,42 @@ def tiny_pdf(tmp_path: Path) -> Path:
     doc.save(p)
     doc.close()
     return p
+
+
+@pytest.fixture(scope="session")
+def tiny_mp4(tmp_path_factory) -> Path:
+    """A 1-second 64x64 black video, built once per session."""
+    import subprocess
+
+    from polytool.core.ffmpeg import ffmpeg_path
+
+    out = tmp_path_factory.mktemp("media") / "tiny.mp4"
+    subprocess.run(
+        [
+            ffmpeg_path(),
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=64x64:d=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=channel_layout=mono:sample_rate=8000",
+            "-t",
+            "1",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(out),
+        ],
+        check=True,
+    )
+    return out
