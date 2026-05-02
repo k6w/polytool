@@ -10,7 +10,24 @@ from __future__ import annotations
 import typer
 
 from polytool import __version__
-from polytool.cli import clip, color, convert, cron, data, dl, enc, file, gen, img, net, pdf, qr, text, vid
+from polytool.cli import (
+    clip,
+    color,
+    convert,
+    cron,
+    data,
+    dl,
+    enc,
+    file,
+    gen,
+    img,
+    net,
+    pdf,
+    qr,
+    shot,
+    text,
+    vid,
+)
 from polytool.core.errors import install_excepthook
 
 install_excepthook()
@@ -59,6 +76,7 @@ app.add_typer(img.app, name="img")
 app.add_typer(pdf.app, name="pdf")
 app.add_typer(vid.app, name="vid")
 app.add_typer(dl.app, name="dl")
+app.add_typer(shot.app, name="shot")
 
 
 __all__ = ["app"]
