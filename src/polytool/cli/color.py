@@ -91,9 +91,7 @@ def _to_cmyk(r: float, g: float, b: float) -> str:
 
 @app.command("convert")
 def cmd_convert(
-    spec: Annotated[
-        str, typer.Argument(help="Color in hex, rgb(...), hsl(...), or hsv(...).")
-    ],
+    spec: Annotated[str, typer.Argument(help="Color in hex, rgb(...), hsl(...), or hsv(...).")],
     to: Annotated[
         str, typer.Option("--to", "-t", help="hex | rgb | hsl | hsv | cmyk | all")
     ] = "all",

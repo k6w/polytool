@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 PIL = pytest.importorskip("PIL")
@@ -18,17 +16,13 @@ def test_convert_png_to_jpg(runner, cli_app, tiny_png) -> None:
 
 
 def test_convert_jpg_to_webp(runner, cli_app, tiny_jpg) -> None:
-    out = tiny_jpg.with_suffix(".webp")
     result = runner.invoke(cli_app, ["img", "convert", str(tiny_jpg), "--to", "webp"])
     assert result.exit_code == 0
-    expected = tiny_jpg.with_suffix(".webp")
-    assert expected.exists()
+    assert tiny_jpg.with_suffix(".webp").exists()
 
 
 def test_convert_missing_file(runner, cli_app, tmp_path) -> None:
-    result = runner.invoke(
-        cli_app, ["img", "convert", str(tmp_path / "nope.png"), "--to", "jpg"]
-    )
+    result = runner.invoke(cli_app, ["img", "convert", str(tmp_path / "nope.png"), "--to", "jpg"])
     assert result.exit_code != 0
 
 

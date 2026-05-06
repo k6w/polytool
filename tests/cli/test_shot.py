@@ -33,7 +33,5 @@ def test_screen_capture(runner, cli_app, tmp_path) -> None:
 
 def test_screen_bad_monitor(runner, cli_app, tmp_path) -> None:
     out = tmp_path / "x.png"
-    result = runner.invoke(
-        cli_app, ["shot", "screen", "--monitor", "999", "-o", str(out)]
-    )
+    result = runner.invoke(cli_app, ["shot", "screen", "--monitor", "999", "-o", str(out)])
     assert result.exit_code != 0

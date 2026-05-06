@@ -24,9 +24,7 @@ app = typer.Typer(
 def cmd_diff(
     a: Annotated[Path, typer.Argument(help="First file")],
     b: Annotated[Path, typer.Argument(help="Second file")],
-    unified: Annotated[
-        int, typer.Option("--unified", "-u", help="Unified context lines")
-    ] = 3,
+    unified: Annotated[int, typer.Option("--unified", "-u", help="Unified context lines")] = 3,
 ) -> None:
     """Show a unified diff between two text files.
 
@@ -47,9 +45,7 @@ def cmd_diff(
 
 @app.command("wc")
 def cmd_wc(
-    source: Annotated[
-        Path | None, typer.Argument(help="File path (or omit for stdin)")
-    ] = None,
+    source: Annotated[Path | None, typer.Argument(help="File path (or omit for stdin)")] = None,
 ) -> None:
     """Count lines, words, and characters.
 
@@ -66,11 +62,17 @@ def cmd_wc(
 
 
 CASE_FNS = {
-    "snake": lambda s: re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).replace("-", "_").replace(" ", "_").lower(),
-    "kebab": lambda s: re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", s).replace("_", "-").replace(" ", "-").lower(),
+    "snake": lambda s: (
+        re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).replace("-", "_").replace(" ", "_").lower()
+    ),
+    "kebab": lambda s: (
+        re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", s).replace("_", "-").replace(" ", "-").lower()
+    ),
     "camel": None,  # filled below
     "pascal": None,
-    "constant": lambda s: re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).replace("-", "_").replace(" ", "_").upper(),
+    "constant": lambda s: (
+        re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).replace("-", "_").replace(" ", "_").upper()
+    ),
     "title": str.title,
     "upper": str.upper,
     "lower": str.lower,
@@ -100,9 +102,7 @@ def cmd_case(
         str,
         typer.Argument(help="snake | kebab | camel | pascal | constant | title | upper | lower"),
     ],
-    text: Annotated[
-        str | None, typer.Argument(help="Text (or omit for stdin)")
-    ] = None,
+    text: Annotated[str | None, typer.Argument(help="Text (or omit for stdin)")] = None,
 ) -> None:
     """Convert string casing.
 
@@ -142,9 +142,7 @@ def cmd_slugify(
 
 @app.command("md-to-html")
 def cmd_md_to_html(
-    source: Annotated[
-        Path | None, typer.Argument(help="Markdown file (or '-' for stdin)")
-    ] = None,
+    source: Annotated[Path | None, typer.Argument(help="Markdown file (or '-' for stdin)")] = None,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Output file (default: stdout)")
     ] = None,
@@ -165,9 +163,7 @@ def cmd_md_to_html(
 
 @app.command("md-preview")
 def cmd_md_preview(
-    source: Annotated[
-        Path | None, typer.Argument(help="Markdown file (or '-' for stdin)")
-    ] = None,
+    source: Annotated[Path | None, typer.Argument(help="Markdown file (or '-' for stdin)")] = None,
 ) -> None:
     """Render Markdown in the terminal.
 

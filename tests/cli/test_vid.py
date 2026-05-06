@@ -68,7 +68,5 @@ def test_trim_conflict(runner, cli_app, tiny_mp4, tmp_path) -> None:
 
 def test_missing_file(runner, cli_app, tmp_path) -> None:
     out = tmp_path / "x.mp4"
-    result = runner.invoke(
-        cli_app, ["vid", "convert", str(tmp_path / "nope.mp4"), "-o", str(out)]
-    )
+    result = runner.invoke(cli_app, ["vid", "convert", str(tmp_path / "nope.mp4"), "-o", str(out)])
     assert result.exit_code != 0

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 
 def test_gen_png(runner, cli_app, tmp_path) -> None:
     out = tmp_path / "qr.png"
@@ -19,7 +17,9 @@ def test_gen_svg(runner, cli_app, tmp_path) -> None:
     result = runner.invoke(cli_app, ["qr", "gen", "hi", "--output", str(out)])
     assert result.exit_code == 0
     assert out.exists()
-    assert out.read_text(encoding="utf-8").startswith("<?xml") or "<svg" in out.read_text(encoding="utf-8")
+    assert out.read_text(encoding="utf-8").startswith("<?xml") or "<svg" in out.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_gen_terminal(runner, cli_app) -> None:

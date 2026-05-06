@@ -8,7 +8,6 @@ from typing import Annotated
 import typer
 
 from polytool.core.errors import PolytoolError
-from polytool.core.io import default_output
 
 app = typer.Typer(
     name="qr",
@@ -22,15 +21,13 @@ def cmd_gen(
     text: Annotated[str, typer.Argument(help="Content to encode")],
     output: Annotated[
         Path | None,
-        typer.Option("--output", "-o", help="Output file (.png, .svg, .pdf, .eps); default: qr.png"),
+        typer.Option(
+            "--output", "-o", help="Output file (.png, .svg, .pdf, .eps); default: qr.png"
+        ),
     ] = None,
-    scale: Annotated[
-        int, typer.Option("--scale", help="Pixel scale (PNG/SVG)")
-    ] = 8,
+    scale: Annotated[int, typer.Option("--scale", help="Pixel scale (PNG/SVG)")] = 8,
     border: Annotated[int, typer.Option("--border", help="Quiet zone in modules")] = 4,
-    error: Annotated[
-        str, typer.Option("--error", "-e", help="Error correction: l, m, q, h")
-    ] = "m",
+    error: Annotated[str, typer.Option("--error", "-e", help="Error correction: l, m, q, h")] = "m",
     terminal: Annotated[
         bool,
         typer.Option("--terminal/--no-terminal", help="Print ASCII to terminal"),
@@ -83,7 +80,7 @@ def cmd_decode(
     from polytool.core.lazy import require_extra
 
     pyzbar = require_extra("pyzbar.pyzbar", extra="qr-decode")
-    PIL_Image = require_extra("PIL.Image", extra="img")  # noqa: N806
+    PIL_Image = require_extra("PIL.Image", extra="img")
 
     img = PIL_Image.open(image)
     results = pyzbar.decode(img)
@@ -99,12 +96,8 @@ def cmd_decode(
 @app.command("wifi")
 def cmd_wifi(
     ssid: Annotated[str, typer.Argument(help="Network SSID")],
-    password: Annotated[
-        str, typer.Option("--password", "-p", help="Network password")
-    ] = "",
-    auth: Annotated[
-        str, typer.Option("--auth", help="WPA, WPA2, WEP, or '' for open")
-    ] = "WPA2",
+    password: Annotated[str, typer.Option("--password", "-p", help="Network password")] = "",
+    auth: Annotated[str, typer.Option("--auth", help="WPA, WPA2, WEP, or '' for open")] = "WPA2",
     hidden: Annotated[bool, typer.Option("--hidden", help="Hidden SSID")] = False,
     output: Annotated[
         Path | None, typer.Option("--output", "-o", help="Output file (default: wifi.png)")
@@ -120,7 +113,9 @@ def cmd_wifi(
     import segno
     from segno import helpers
 
-    qr = helpers.make_wifi(ssid=ssid, password=password or None, security=auth or None, hidden=hidden)
+    qr = helpers.make_wifi(
+        ssid=ssid, password=password or None, security=auth or None, hidden=hidden
+    )
     out = output or Path("wifi.png")
     qr.save(str(out), scale=8, border=4)
     typer.echo(f"Wrote {out}")

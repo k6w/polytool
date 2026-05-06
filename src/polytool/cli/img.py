@@ -22,7 +22,7 @@ def _open_image(source: Path):
     """Open an image, handling HEIC/AVIF/SVG via plugins/resvg."""
     from polytool.core.lazy import require_extra
 
-    PIL_Image = require_extra("PIL.Image", extra="img")  # noqa: N806
+    PIL_Image = require_extra("PIL.Image", extra="img")
 
     suffix = source.suffix.lower()
     if suffix == ".svg":
@@ -66,7 +66,8 @@ def cmd_convert(
     output: Annotated[
         Path | None,
         typer.Option(
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Output file (extension picks format). Default: same name, target ext.",
         ),
     ] = None,
@@ -90,7 +91,7 @@ def cmd_convert(
         if to is None:
             raise PolytoolError("Provide --output or --to.")
         output = default_output(source, "." + to.lstrip("."))
-    fmt_ext = (to or output.suffix.lstrip("."))
+    fmt_ext = to or output.suffix.lstrip(".")
     img = _open_image(source)
 
     save_kwargs: dict = {}
@@ -109,7 +110,9 @@ def cmd_convert(
         save_kwargs["optimize"] = True
 
     try:
-        img.save(output, format=pil_format if pil_format != fmt_lower.upper() else None, **save_kwargs)
+        img.save(
+            output, format=pil_format if pil_format != fmt_lower.upper() else None, **save_kwargs
+        )
     except Exception as exc:
         raise PolytoolError(f"Could not save as {pil_format}: {exc}") from exc
     console.print(f"[green]Wrote[/green] {output}")
@@ -196,8 +199,7 @@ def cmd_compress(
     before = source.stat().st_size
     after = out.stat().st_size
     console.print(
-        f"[green]Wrote[/green] {out} ({before:,} -> {after:,} bytes, "
-        f"{(after / before) * 100:.0f}%)"
+        f"[green]Wrote[/green] {out} ({before:,} -> {after:,} bytes, {(after / before) * 100:.0f}%)"
     )
 
 
@@ -223,7 +225,7 @@ def cmd_exif(
     if not source.exists():
         raise PolytoolError(f"File not found: {source}")
     if not strip:
-        from PIL import Image, ExifTags
+        from PIL import ExifTags, Image
 
         img = Image.open(source)
         exif = img.getexif()
@@ -417,7 +419,7 @@ def cmd_ocr(
 
     if engine == "tesseract":
         pytesseract = require_extra("pytesseract", extra="ocr")
-        PIL_Image = require_extra("PIL.Image", extra="img")  # noqa: N806
+        PIL_Image = require_extra("PIL.Image", extra="img")
 
         try:
             text = pytesseract.image_to_string(PIL_Image.open(source), lang=lang)
@@ -434,6 +436,4 @@ def cmd_ocr(
         for line in results:
             typer.echo(line)
     else:
-        raise PolytoolError(
-            f"Unknown engine {engine!r}", hint="Use 'tesseract' or 'easyocr'."
-        )
+        raise PolytoolError(f"Unknown engine {engine!r}", hint="Use 'tesseract' or 'easyocr'.")

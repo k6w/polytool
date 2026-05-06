@@ -37,9 +37,7 @@ def cmd_rename(
         typer.Option("--dir", "-d", help="Directory to scan (default: cwd)"),
     ] = Path(),
     start: Annotated[int, typer.Option("--start", help="Starting counter")] = 1,
-    dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Print only, don't rename")
-    ] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Print only, don't rename")] = False,
 ) -> None:
     """Batch rename files matching a glob.
 
@@ -99,6 +97,8 @@ def cmd_dedupe(
     if not directory.is_dir():
         raise PolytoolError(f"Not a directory: {directory}")
 
+    import contextlib
+
     by_size: dict[int, list[Path]] = defaultdict(list)
     for p in directory.rglob("*"):
         if p.is_file():
@@ -110,10 +110,8 @@ def cmd_dedupe(
             continue
         by_hash: dict[str, list[Path]] = defaultdict(list)
         for p in group:
-            try:
+            with contextlib.suppress(OSError):
                 by_hash[_hash_file(p)].append(p)
-            except OSError:
-                continue
         for matches in by_hash.values():
             if len(matches) > 1:
                 duplicates.append(matches)
@@ -126,22 +124,16 @@ def cmd_dedupe(
     saved_bytes = 0
     for group in duplicates:
         sorted_group = (
-            sorted(group, key=lambda p: len(str(p)))
-            if keep == "shortest"
-            else sorted(group)
+            sorted(group, key=lambda p: len(str(p))) if keep == "shortest" else sorted(group)
         )
         kept, victims = sorted_group[0], sorted_group[1:]
         for v in victims:
             saved_bytes += v.stat().st_size
-            err_console.print(
-                f"[red]dup[/red] {v}  [dim](keep {kept})[/dim]"
-            )
+            err_console.print(f"[red]dup[/red] {v}  [dim](keep {kept})[/dim]")
             if delete:
                 v.unlink()
     verb = "Deleted" if delete else "Would delete"
-    typer.echo(
-        f"{verb} {total_dupes} duplicate file(s), reclaiming {saved_bytes:,} bytes."
-    )
+    typer.echo(f"{verb} {total_dupes} duplicate file(s), reclaiming {saved_bytes:,} bytes.")
 
 
 def _human_size(n: int) -> str:
@@ -167,13 +159,13 @@ def cmd_bigfiles(
     """
     if not directory.is_dir():
         raise PolytoolError(f"Not a directory: {directory}")
+    import contextlib
+
     sizes: list[tuple[int, Path]] = []
     for p in directory.rglob("*"):
         if p.is_file():
-            try:
+            with contextlib.suppress(OSError):
                 sizes.append((p.stat().st_size, p))
-            except OSError:
-                pass
     sizes.sort(key=lambda x: x[0], reverse=True)
     for size, path in sizes[:top]:
         typer.echo(f"{_human_size(size):>10}  {path}")
@@ -182,9 +174,7 @@ def cmd_bigfiles(
 @app.command("organize")
 def cmd_organize(
     directory: Annotated[Path, typer.Argument(help="Directory to organize")],
-    by: Annotated[
-        str, typer.Option("--by", help="'extension' or 'date'")
-    ] = "extension",
+    by: Annotated[str, typer.Option("--by", help="'extension' or 'date'")] = "extension",
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Print only")] = False,
 ) -> None:
     """Move files into subfolders by extension or modification date.
@@ -197,9 +187,7 @@ def cmd_organize(
     if not directory.is_dir():
         raise PolytoolError(f"Not a directory: {directory}")
     if by not in {"extension", "date"}:
-        raise PolytoolError(
-            f"Unknown --by value {by!r}", hint="Use 'extension' or 'date'."
-        )
+        raise PolytoolError(f"Unknown --by value {by!r}", hint="Use 'extension' or 'date'.")
 
     moved = 0
     for p in directory.iterdir():
@@ -225,9 +213,7 @@ def cmd_organize(
 
 @app.command("archive")
 def cmd_archive(
-    paths: Annotated[
-        list[Path], typer.Argument(help="Files/folders to archive")
-    ],
+    paths: Annotated[list[Path], typer.Argument(help="Files/folders to archive")],
     output: Annotated[
         Path,
         typer.Option(

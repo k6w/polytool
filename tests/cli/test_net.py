@@ -36,9 +36,7 @@ def test_port_check_closed(runner, cli_app) -> None:
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
     s.close()
-    result = runner.invoke(
-        cli_app, ["net", "port-check", f"127.0.0.1:{port}", "--timeout", "1"]
-    )
+    result = runner.invoke(cli_app, ["net", "port-check", f"127.0.0.1:{port}", "--timeout", "1"])
     assert result.exit_code != 0
 
 

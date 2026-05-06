@@ -20,9 +20,7 @@ app = typer.Typer(
 @app.command("get")
 def cmd_get(
     url: Annotated[str, typer.Argument(help="Media URL")],
-    output_dir: Annotated[
-        Path, typer.Option("--output", "-o", help="Output directory")
-    ] = Path(),
+    output_dir: Annotated[Path, typer.Option("--output", "-o", help="Output directory")] = Path(),
     audio_only: Annotated[
         bool,
         typer.Option("--audio-only", "-a", help="Download audio (mp3) only"),
@@ -34,7 +32,8 @@ def cmd_get(
     template: Annotated[
         str,
         typer.Option(
-            "--template", "-t",
+            "--template",
+            "-t",
             help="Output filename template (yt-dlp syntax)",
         ),
     ] = "%(title)s.%(ext)s",

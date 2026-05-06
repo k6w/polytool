@@ -3,8 +3,22 @@
 from __future__ import annotations
 
 EXPECTED_GROUPS = [
-    "img", "vid", "pdf", "dl", "data", "enc", "qr", "gen",
-    "file", "net", "clip", "shot", "color", "convert", "text", "cron",
+    "img",
+    "vid",
+    "pdf",
+    "dl",
+    "data",
+    "enc",
+    "qr",
+    "gen",
+    "file",
+    "net",
+    "clip",
+    "shot",
+    "color",
+    "convert",
+    "text",
+    "cron",
 ]
 
 

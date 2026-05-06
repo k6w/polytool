@@ -20,9 +20,7 @@ app = typer.Typer(
 
 @app.command("port-check")
 def cmd_port_check(
-    host_port: Annotated[
-        str, typer.Argument(help="host:port, e.g. example.com:443")
-    ],
+    host_port: Annotated[str, typer.Argument(help="host:port, e.g. example.com:443")],
     timeout: Annotated[float, typer.Option("--timeout", "-t", help="Seconds")] = 3.0,
 ) -> None:
     """Check whether a TCP port is reachable.
@@ -55,9 +53,7 @@ def cmd_port_check(
 
 @app.command("ip-info")
 def cmd_ip_info(
-    ip: Annotated[
-        str | None, typer.Argument(help="IP address (default: your public IP)")
-    ] = None,
+    ip: Annotated[str | None, typer.Argument(help="IP address (default: your public IP)")] = None,
 ) -> None:
     """Show geo / ISP info for an IP (uses ip-api.com, no key, free tier).
 
@@ -89,9 +85,7 @@ def cmd_http(
         list[str] | None,
         typer.Option("--header", "-H", help="Header 'Name: Value' (repeatable)"),
     ] = None,
-    body: Annotated[
-        str | None, typer.Option("--data", "-d", help="Request body")
-    ] = None,
+    body: Annotated[str | None, typer.Option("--data", "-d", help="Request body")] = None,
     json_body: Annotated[
         str | None, typer.Option("--json", "-j", help="Request body as JSON literal")
     ] = None,

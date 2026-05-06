@@ -114,6 +114,9 @@ ignore = [
     "B008",          # function calls in default args (Typer's pattern)
     "PLR0911",       # too many returns (fine for CLI dispatchers)
     "PLR0912",       # too many branches
+    "PLC0415",       # imports inside functions (intentional — lazy-load heavy deps)
+    "PLR0915",       # too many statements (CLI subcommands often need many)
+    "TID252",        # relative imports (we use absolute, but fixture imports differ)
 ]
 
 [tool.ruff.lint.per-file-ignores]

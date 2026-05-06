@@ -133,12 +133,8 @@ def cmd_gif(
     ] = None,
     fps: Annotated[int, typer.Option("--fps", help="Frames per second")] = 12,
     width: Annotated[int, typer.Option("--width", "-w", help="Output width (px)")] = 480,
-    start: Annotated[
-        str | None, typer.Option("--start", "-s", help="Start time")
-    ] = None,
-    duration: Annotated[
-        str | None, typer.Option("--duration", "-d", help="Length")
-    ] = None,
+    start: Annotated[str | None, typer.Option("--start", "-s", help="Start time")] = None,
+    duration: Annotated[str | None, typer.Option("--duration", "-d", help="Length")] = None,
 ) -> None:
     """Convert a video clip to an animated GIF.
 

@@ -19,12 +19,8 @@ app = typer.Typer(
 
 @app.command("merge")
 def cmd_merge(
-    inputs: Annotated[
-        list[Path], typer.Argument(help="PDF files to merge in order")
-    ],
-    output: Annotated[
-        Path, typer.Option("--output", "-o", help="Output PDF")
-    ],
+    inputs: Annotated[list[Path], typer.Argument(help="PDF files to merge in order")],
+    output: Annotated[Path, typer.Option("--output", "-o", help="Output PDF")],
 ) -> None:
     """Concatenate two or more PDFs into one.
 
@@ -51,9 +47,9 @@ def cmd_merge(
 @app.command("split")
 def cmd_split(
     source: Annotated[Path, typer.Argument(help="PDF to split")],
-    output_dir: Annotated[
-        Path, typer.Option("--output", "-o", help="Output directory")
-    ] = Path("split"),
+    output_dir: Annotated[Path, typer.Option("--output", "-o", help="Output directory")] = Path(
+        "split"
+    ),
     pages: Annotated[
         str | None,
         typer.Option(
@@ -80,8 +76,8 @@ def cmd_split(
 
     def _expand(spec: str) -> list[int]:
         out: list[int] = []
-        for chunk in spec.split(","):
-            chunk = chunk.strip()
+        for raw in spec.split(","):
+            chunk = raw.strip()
             if not chunk:
                 continue
             if "-" in chunk:
@@ -109,7 +105,9 @@ def cmd_split(
         w = pypdf.PdfWriter()
         for i in idxs:
             w.add_page(reader.pages[i])
-        out = output_dir if output_dir.suffix == ".pdf" else output_dir / f"{source.stem}_extract.pdf"
+        out = (
+            output_dir if output_dir.suffix == ".pdf" else output_dir / f"{source.stem}_extract.pdf"
+        )
         out.parent.mkdir(parents=True, exist_ok=True)
         with out.open("wb") as f:
             w.write(f)
@@ -142,8 +140,7 @@ def cmd_compress(
     before = source.stat().st_size
     after = out.stat().st_size
     console.print(
-        f"[green]Wrote[/green] {out} ({before:,} -> {after:,} bytes, "
-        f"{(after / before) * 100:.0f}%)"
+        f"[green]Wrote[/green] {out} ({before:,} -> {after:,} bytes, {(after / before) * 100:.0f}%)"
     )
 
 
@@ -183,13 +180,11 @@ def cmd_extract_text(
 @app.command("to-images")
 def cmd_to_images(
     source: Annotated[Path, typer.Argument(help="PDF to render to images")],
-    output_dir: Annotated[
-        Path, typer.Option("--output", "-o", help="Output directory")
-    ] = Path("pages"),
+    output_dir: Annotated[Path, typer.Option("--output", "-o", help="Output directory")] = Path(
+        "pages"
+    ),
     dpi: Annotated[int, typer.Option("--dpi", help="Render DPI")] = 150,
-    format: Annotated[
-        str, typer.Option("--format", "-f", help="png | jpg")
-    ] = "png",
+    format: Annotated[str, typer.Option("--format", "-f", help="png | jpg")] = "png",
 ) -> None:
     """Render every PDF page as an image.
 
@@ -205,9 +200,7 @@ def cmd_to_images(
     if not source.exists():
         raise PolytoolError(f"File not found: {source}")
     if format.lower() not in {"png", "jpg", "jpeg"}:
-        raise PolytoolError(
-            f"Unsupported format {format!r}", hint="Use 'png' or 'jpg'."
-        )
+        raise PolytoolError(f"Unsupported format {format!r}", hint="Use 'png' or 'jpg'.")
     output_dir.mkdir(parents=True, exist_ok=True)
     doc = fitz.open(source)
     n_pages = len(doc)
@@ -235,7 +228,7 @@ def cmd_from_images(
     """
     from polytool.core.lazy import require_extra
 
-    PIL_Image = require_extra("PIL.Image", extra="img")  # noqa: N806
+    PIL_Image = require_extra("PIL.Image", extra="img")
 
     if not inputs:
         raise PolytoolError("No input images")
@@ -252,9 +245,7 @@ def cmd_ocr(
         Path | None,
         typer.Option("--output", "-o", help="Output text file (default: stdout)"),
     ] = None,
-    engine: Annotated[
-        str, typer.Option("--engine", help="'tesseract' or 'easyocr'")
-    ] = "tesseract",
+    engine: Annotated[str, typer.Option("--engine", help="'tesseract' or 'easyocr'")] = "tesseract",
     lang: Annotated[str, typer.Option("--lang", help="Language code")] = "eng",
     dpi: Annotated[int, typer.Option("--dpi", help="Render DPI for OCR")] = 250,
 ) -> None:
@@ -267,7 +258,7 @@ def cmd_ocr(
     from polytool.core.lazy import require_extra
 
     fitz = require_extra("pymupdf", extra="pdf")
-    PIL_Image = require_extra("PIL.Image", extra="img")  # noqa: N806
+    PIL_Image = require_extra("PIL.Image", extra="img")
 
     if not source.exists():
         raise PolytoolError(f"File not found: {source}")

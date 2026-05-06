@@ -26,9 +26,7 @@ ALGORITHMS = ("md5", "sha1", "sha256", "sha512", "blake2b", "xxhash")
 
 @app.command("hash")
 def cmd_hash(
-    algorithm: Annotated[
-        str, typer.Argument(help=f"One of: {', '.join(ALGORITHMS)}")
-    ],
+    algorithm: Annotated[str, typer.Argument(help=f"One of: {', '.join(ALGORITHMS)}")],
     source: Annotated[
         Path | None,
         typer.Argument(help="File path. Use '-' or omit to read from stdin."),
@@ -91,10 +89,7 @@ def cmd_base64(
     elif mode == "decode":
         text = read_text(source).strip()
         try:
-            if urlsafe:
-                raw = _base64.urlsafe_b64decode(text)
-            else:
-                raw = _base64.b64decode(text)
+            raw = _base64.urlsafe_b64decode(text) if urlsafe else _base64.b64decode(text)
         except Exception as exc:
             raise PolytoolError(
                 f"Invalid base64 input: {exc}",

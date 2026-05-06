@@ -52,9 +52,7 @@ def cmd_uuid(
         str | None,
         typer.Option("--namespace", help="Namespace UUID for v3/v5 (e.g. dns, url, oid, x500)"),
     ] = None,
-    name: Annotated[
-        str | None, typer.Option("--name", help="Name for v3/v5")
-    ] = None,
+    name: Annotated[str | None, typer.Option("--name", help="Name for v3/v5")] = None,
 ) -> None:
     """Generate UUIDs (v1/v3/v4/v5/v7).
 
@@ -99,7 +97,7 @@ def cmd_uuid(
                     | rand_b
                 )
                 typer.echo(str(_uuid.UUID(int=bits)))
-                _ = os  # noqa: F841 — placeholder so the import stays linted
+                _ = os
         elif v in {"3", "5"}:
             if not namespace or not name:
                 raise PolytoolError(
@@ -123,9 +121,7 @@ def cmd_uuid(
 
 @app.command("lorem")
 def cmd_lorem(
-    paragraphs: Annotated[
-        int, typer.Option("--paragraphs", "-p", help="Number of paragraphs")
-    ] = 1,
+    paragraphs: Annotated[int, typer.Option("--paragraphs", "-p", help="Number of paragraphs")] = 1,
     sentences: Annotated[
         int | None,
         typer.Option("--sentences", "-s", help="Sentences per paragraph (default: random)"),

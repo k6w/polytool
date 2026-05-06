@@ -12,9 +12,7 @@ pytest.importorskip("pikepdf")
 
 def test_merge(runner, cli_app, tiny_pdf, tmp_path) -> None:
     out = tmp_path / "merged.pdf"
-    result = runner.invoke(
-        cli_app, ["pdf", "merge", str(tiny_pdf), str(tiny_pdf), "-o", str(out)]
-    )
+    result = runner.invoke(cli_app, ["pdf", "merge", str(tiny_pdf), str(tiny_pdf), "-o", str(out)])
     assert result.exit_code == 0
     import pypdf
 
@@ -24,9 +22,7 @@ def test_merge(runner, cli_app, tiny_pdf, tmp_path) -> None:
 
 
 def test_merge_one_input(runner, cli_app, tiny_pdf, tmp_path) -> None:
-    result = runner.invoke(
-        cli_app, ["pdf", "merge", str(tiny_pdf), "-o", str(tmp_path / "m.pdf")]
-    )
+    result = runner.invoke(cli_app, ["pdf", "merge", str(tiny_pdf), "-o", str(tmp_path / "m.pdf")])
     assert result.exit_code != 0
 
 
@@ -40,9 +36,7 @@ def test_split_per_page(runner, cli_app, tiny_pdf, tmp_path) -> None:
 
 def test_split_range(runner, cli_app, tiny_pdf, tmp_path) -> None:
     out = tmp_path / "p1.pdf"
-    result = runner.invoke(
-        cli_app, ["pdf", "split", str(tiny_pdf), "--pages", "1", "-o", str(out)]
-    )
+    result = runner.invoke(cli_app, ["pdf", "split", str(tiny_pdf), "--pages", "1", "-o", str(out)])
     assert result.exit_code == 0
     assert out.exists()
 
@@ -85,7 +79,5 @@ def test_from_images(runner, cli_app, tiny_jpg, tmp_path) -> None:
 
 
 def test_missing_input(runner, cli_app, tmp_path) -> None:
-    result = runner.invoke(
-        cli_app, ["pdf", "extract-text", str(tmp_path / "nope.pdf")]
-    )
+    result = runner.invoke(cli_app, ["pdf", "extract-text", str(tmp_path / "nope.pdf")])
     assert result.exit_code != 0

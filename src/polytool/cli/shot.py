@@ -27,9 +27,7 @@ def cmd_screen(
     ] = None,
     monitor: Annotated[
         int,
-        typer.Option(
-            "--monitor", "-m", help="Monitor index (0=all, 1=primary, ...)"
-        ),
+        typer.Option("--monitor", "-m", help="Monitor index (0=all, 1=primary, ...)"),
     ] = 0,
 ) -> None:
     """Capture the screen.
@@ -44,7 +42,7 @@ def cmd_screen(
     mss_mod = require_extra("mss", extra="shot")
 
     out = output or Path("screen.png")
-    MSS = getattr(mss_mod, "MSS", None) or mss_mod.mss  # noqa: N806
+    MSS = getattr(mss_mod, "MSS", None) or mss_mod.mss
     with MSS() as sct:
         if monitor < 0 or monitor >= len(sct.monitors):
             raise PolytoolError(
@@ -69,9 +67,7 @@ def cmd_web(
     ] = True,
     width: Annotated[int, typer.Option("--width", help="Viewport width (px)")] = 1280,
     height: Annotated[int, typer.Option("--height", help="Viewport height (px)")] = 800,
-    wait_ms: Annotated[
-        int, typer.Option("--wait", help="Extra ms to wait after load")
-    ] = 0,
+    wait_ms: Annotated[int, typer.Option("--wait", help="Extra ms to wait after load")] = 0,
 ) -> None:
     """Capture a screenshot of a web page (via Playwright Chromium).
 
@@ -99,7 +95,11 @@ def cmd_web(
             browser.close()
     except Exception as exc:
         msg = str(exc).lower()
-        if "executable doesn't exist" in msg or "missing dependencies" in msg or "browsertype" in msg:
+        if (
+            "executable doesn't exist" in msg
+            or "missing dependencies" in msg
+            or "browsertype" in msg
+        ):
             raise PolytoolError(
                 "Playwright Chromium not installed.",
                 hint="Run: [cyan]pt shot install[/cyan]",

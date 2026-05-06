@@ -30,9 +30,7 @@ def _pyperclip():
 
 @app.command("copy")
 def cmd_copy(
-    text: Annotated[
-        str | None, typer.Argument(help="Text (or omit to read stdin).")
-    ] = None,
+    text: Annotated[str | None, typer.Argument(help="Text (or omit to read stdin).")] = None,
 ) -> None:
     """Copy text to the system clipboard.
 

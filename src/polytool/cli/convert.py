@@ -17,9 +17,7 @@ app = typer.Typer(
 
 @app.command("unit")
 def cmd_unit(
-    value: Annotated[
-        str, typer.Argument(help="Value with unit, e.g. '100 km' or '3 hours'.")
-    ],
+    value: Annotated[str, typer.Argument(help="Value with unit, e.g. '100 km' or '3 hours'.")],
     to: Annotated[str, typer.Option("--to", "-t", help="Target unit, e.g. 'mi'.")],
 ) -> None:
     """Convert physical units (length, mass, time, temperature, ...).
@@ -47,9 +45,7 @@ def cmd_unit(
 
 @app.command("timestamp")
 def cmd_timestamp(
-    value: Annotated[
-        str, typer.Argument(help="Unix epoch (sec or ms) or ISO datetime.")
-    ],
+    value: Annotated[str, typer.Argument(help="Unix epoch (sec or ms) or ISO datetime.")],
     to: Annotated[
         str, typer.Option("--to", "-t", help="Target: 'iso', 'epoch', 'epoch-ms', 'rfc822'")
     ] = "iso",
@@ -124,7 +120,9 @@ def cmd_base(
     bases = {"2": 2, "bin": 2, "8": 8, "oct": 8, "10": 10, "dec": 10, "16": 16, "hex": 16}
     target = bases.get(to.lower())
     if target is None:
-        raise PolytoolError(f"Unknown target base {to!r}", hint="One of: 2/bin, 8/oct, 10/dec, 16/hex")
+        raise PolytoolError(
+            f"Unknown target base {to!r}", hint="One of: 2/bin, 8/oct, 10/dec, 16/hex"
+        )
 
     if from_ is None:
         try:

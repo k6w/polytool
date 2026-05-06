@@ -84,7 +84,7 @@ def _dump(data: Any, fmt: str, *, pretty: bool = True) -> str:
         if not isinstance(data, dict):
             raise PolytoolError(
                 "TOML output requires a top-level mapping",
-                hint="Wrap your list in a key, e.g. {\"items\": [...]}.",
+                hint='Wrap your list in a key, e.g. {"items": [...]}.',
             )
         return tomli_w.dumps(data)
     if fmt == "csv":
@@ -119,9 +119,7 @@ def cmd_convert(
     source: Annotated[
         Path | None, typer.Argument(help="Source file (or '-' / omit for stdin)")
     ] = None,
-    to: Annotated[
-        str, typer.Option("--to", "-t", help="Target: json|yaml|toml|csv|xml")
-    ] = "json",
+    to: Annotated[str, typer.Option("--to", "-t", help="Target: json|yaml|toml|csv|xml")] = "json",
     from_: Annotated[
         str | None,
         typer.Option("--from", "-f", help="Source format (default: from extension)"),
@@ -151,9 +149,7 @@ def cmd_convert(
 
 @app.command("pretty")
 def cmd_pretty(
-    source: Annotated[
-        Path | None, typer.Argument(help="File (or '-' / omit for stdin)")
-    ] = None,
+    source: Annotated[Path | None, typer.Argument(help="File (or '-' / omit for stdin)")] = None,
     from_: Annotated[
         str | None, typer.Option("--from", "-f", help="Format (default: from extension)")
     ] = None,
@@ -172,9 +168,7 @@ def cmd_pretty(
 
 @app.command("validate")
 def cmd_validate(
-    source: Annotated[
-        Path | None, typer.Argument(help="File (or '-' / omit for stdin)")
-    ] = None,
+    source: Annotated[Path | None, typer.Argument(help="File (or '-' / omit for stdin)")] = None,
     from_: Annotated[
         str | None, typer.Option("--from", "-f", help="Format (default: from extension)")
     ] = None,

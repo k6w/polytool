@@ -54,8 +54,6 @@ def test_base_dec_to_hex(runner, cli_app) -> None:
 
 
 def test_base_explicit_from(runner, cli_app) -> None:
-    result = runner.invoke(
-        cli_app, ["convert", "base", "11111111", "--from", "2", "--to", "dec"]
-    )
+    result = runner.invoke(cli_app, ["convert", "base", "11111111", "--from", "2", "--to", "dec"])
     assert result.exit_code == 0
     assert result.stdout.strip() == "255"

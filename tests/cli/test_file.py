@@ -26,9 +26,13 @@ def test_rename_actual(runner, cli_app, tmp_path) -> None:
     result = runner.invoke(
         cli_app,
         [
-            "file", "rename", "*.txt",
-            "--to", "renamed_{n:02}.txt",
-            "--dir", str(tmp_path),
+            "file",
+            "rename",
+            "*.txt",
+            "--to",
+            "renamed_{n:02}.txt",
+            "--dir",
+            str(tmp_path),
         ],
     )
     assert result.exit_code == 0
