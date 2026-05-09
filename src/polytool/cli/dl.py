@@ -65,9 +65,28 @@ DRM_PATTERNS = (
 
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-_NOISE_RE = re.compile(
+
+# Lines we *never* show — pure status output from yt-dlp's discovery pipeline.
+_PROGRESS_NOISE_RE = re.compile(
     r"^(?:Extracting URL|Downloading\s\S+|Extracting cookies|Extracted\s|"
     r"\[\w+\]\s|Sleeping|Skipping|Deleting original file)"
+)
+
+# Per-client warnings yt-dlp emits while it tries multiple YouTube extractors.
+# These are informational — when at least one client succeeds, the user
+# doesn't need to know that the others were skipped. We capture them in the
+# logger so the n-challenge hint can still see them if the download ultimately
+# fails, but we don't print them to the terminal during a successful run.
+_CLIENT_NOISE_PATTERNS = (
+    "n challenge solving failed",
+    "some formats may be missing",
+    "client https formats require a gvs po token",
+    "client hls formats require a gvs po token",
+    "client formats require a gvs po token",
+    "have been skipped as they are drm protected",
+    "experiment that applies drm",
+    "skipped as they are drm",
+    "ensure you have a supported javascript runtime",
 )
 
 
@@ -79,12 +98,22 @@ def _strip(msg: object) -> str:
     return text
 
 
-class _DlLogger:
-    """Capture yt-dlp warnings/errors so we can filter noise and surface hints."""
+def _is_noise(text: str) -> bool:
+    if _PROGRESS_NOISE_RE.match(text):
+        return True
+    low = text.lower()
+    return any(p in low for p in _CLIENT_NOISE_PATTERNS)
 
-    def __init__(self) -> None:
+
+class _DlLogger:
+    """Capture yt-dlp warnings/errors. Filter the noisy per-client status
+    warnings out of terminal output (still recorded for hint generation).
+    """
+
+    def __init__(self, verbose: bool = False) -> None:
         self.warnings: list[str] = []
         self.errors: list[str] = []
+        self.verbose = verbose
 
     def debug(self, msg: object) -> None:
         pass
@@ -97,7 +126,7 @@ class _DlLogger:
         if not clean:
             return
         self.warnings.append(clean)
-        if not _NOISE_RE.match(clean):
+        if self.verbose or not _is_noise(clean):
             err_console.print(f"[yellow]warning:[/yellow] {clean}")
 
     def error(self, msg: object) -> None:
@@ -122,7 +151,11 @@ def _make_progress() -> Progress:
 
 
 def _make_progress_hook(progress: Progress, state: dict):
-    """Build a yt-dlp progress hook that drives the Rich progress bar."""
+    """Build a yt-dlp progress hook that drives the Rich progress bar.
+
+    Also stashes the final filename/size/title in *state* so the success
+    summary can read them after the download completes.
+    """
 
     def hook(d: dict) -> None:
         status = d.get("status")
@@ -132,17 +165,44 @@ def _make_progress_hook(progress: Progress, state: dict):
             info = d.get("info_dict") or {}
             title = info.get("title") or Path(d.get("filename", "download")).name
             disp = title if len(title) <= 50 else title[:47] + "..."
+            state["title"] = title
             tid = state.get("task_id")
             if tid is None:
                 state["task_id"] = progress.add_task(disp, total=total)
             else:
                 progress.update(tid, completed=downloaded, total=total, description=disp)
         elif status == "finished":
+            info = d.get("info_dict") or {}
+            state["filename"] = d.get("filename") or info.get("_filename") or ""
+            state["total_bytes"] = d.get("total_bytes") or d.get("total_bytes_estimate")
             tid = state.pop("task_id", None)
             if tid is not None and progress.tasks[tid].total:
                 progress.update(tid, completed=progress.tasks[tid].total)
 
     return hook
+
+
+def _human_size(n: int | None) -> str:
+    if not n:
+        return "—"
+    f = float(n)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if f < 1024:
+            return f"{f:.1f} {unit}"
+        f /= 1024
+    return f"{f:.1f} PB"
+
+
+def _human_duration(seconds: float) -> str:
+    if seconds < 1:
+        return f"{seconds * 1000:.0f}ms"
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    m, s = divmod(int(seconds), 60)
+    if m < 60:
+        return f"{m}m {s}s"
+    h, m = divmod(m, 60)
+    return f"{h}h {m}m {s}s"
 
 
 def _n_challenge_hint(messages: list[str]) -> str | None:
@@ -537,6 +597,14 @@ def cmd_get(
         str | None,
         typer.Option("--video-password", help="Per-video password (Vimeo etc.)."),
     ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Show every yt-dlp warning (not just the user-actionable ones).",
+        ),
+    ] = False,
 ) -> None:
     """Download a video or audio file.
 
@@ -551,7 +619,10 @@ def cmd_get(
         pt dl get URL --cookies-from-browser firefox     # one-off override
         pt dl get URL --username alice --password 'hunter2'
         pt dl get URL --video-password 'secret'          # Vimeo-style per-video pwd
+        pt dl get URL --verbose                          # show all warnings
     """
+    import time
+
     from polytool.core.lazy import require_extra
 
     yt_dlp = require_extra("yt_dlp", extra="dl")
@@ -561,11 +632,7 @@ def cmd_get(
     # installed, fetch Deno automatically (one-time ~50 MB) — this is what the
     # user expects from `polytool[full]`: it just works.
     if runtime.ensure_runtime_in_path() is None:
-        err_console.print(
-            "[dim]No JS runtime found — polytool will fetch Deno once "
-            "(~50 MB into ~/.polytool/runtime/) so YouTube's n-challenge "
-            "can be solved.[/dim]"
-        )
+        err_console.print("[dim]no JS runtime found — fetching Deno (~50 MB, one-time)...[/dim]")
         try:
             runtime.install_deno()
             runtime.ensure_runtime_in_path()
@@ -575,7 +642,7 @@ def cmd_get(
                 "[dim]Run [cyan]pt dl runtime install[/cyan] manually, "
                 "or install Deno/Node yourself.[/dim]"
             )
-    logger = _DlLogger()
+    logger = _DlLogger(verbose=verbose)
     progress = _make_progress()
     state: dict = {}
     opts: dict = {
@@ -616,10 +683,9 @@ def cmd_get(
     if video_password is not None:
         opts["videopassword"] = video_password
     if "cookiesfrombrowser" in opts and not (cookies_from_browser or cookies_file):
-        err_console.print(
-            f"[dim]using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
-        )
+        err_console.print(f"[dim]cookies: {opts['cookiesfrombrowser'][0]}[/dim]")
 
+    started = time.monotonic()
     try:
         with progress, yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
@@ -631,7 +697,28 @@ def cmd_get(
         raise PolytoolError(
             f"Download failed: {_strip(exc)}", hint=_hint_for_error(str(exc), logger)
         ) from exc
-    console.print("[green]Done.[/green]")
+
+    elapsed = time.monotonic() - started
+    title = state.get("title") or "download"
+    filename = state.get("filename")
+    size = state.get("total_bytes")
+    out_path = Path(filename) if filename else None
+
+    console.print()
+    console.print(f"  [green bold]done[/green bold]  [bold]{title}[/bold]")
+    if out_path is not None:
+        try:
+            display_path = out_path.resolve().relative_to(Path.cwd())
+        except (ValueError, OSError):
+            display_path = out_path
+        console.print(
+            f"        [dim]{display_path}  "
+            f"({_human_size(size)} in {_human_duration(elapsed)})[/dim]"
+        )
+    else:
+        console.print(
+            f"        [dim]({_human_size(size)} in {_human_duration(elapsed)})[/dim]"
+        )
 
 
 @app.command("info")
@@ -702,9 +789,7 @@ def cmd_info(
     if video_password is not None:
         opts["videopassword"] = video_password
     if "cookiesfrombrowser" in opts and not (cookies_from_browser or cookies_file):
-        err_console.print(
-            f"[dim]using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
-        )
+        err_console.print(f"[dim]cookies: {opts['cookiesfrombrowser'][0]}[/dim]")
 
     # process=False skips yt-dlp's format-selection step. We only want metadata,
     # and on some sites (YouTube especially) the default format selector

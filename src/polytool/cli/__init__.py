@@ -48,12 +48,25 @@ app = typer.Typer(
 )
 
 
+def _force_utf8_io() -> None:
+    """On Windows the default code page is often cp1252 and unicode chars
+    in Rich output trip ``UnicodeEncodeError``. Reconfigure stdout/stderr to
+    UTF-8 with a safe fallback before any Rich output happens.
+    """
+    import contextlib
+
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, OSError):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def run() -> None:
     """Console-script entry point — runs the Typer app and renders PolytoolError nicely.
 
     (Defined with a unique name to avoid clashing with the ``@app.callback()``
     function below — both would otherwise be named ``main`` in this module.)
     """
+    _force_utf8_io()
     try:
         app()
     except PolytoolError as exc:
