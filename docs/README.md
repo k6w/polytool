@@ -7,6 +7,7 @@ Detailed reference for every command in `polytool` (binary `pt`).
 ## Quick links
 
 - **[Install](install.md)** — `uv tool install`, slim vs full, extras, Windows quoting
+- **[Auth & external services](auth.md)** — which verbs touch the network and how to authenticate
 - **[Troubleshooting](troubleshooting.md)** — every common gotcha with a fix
 - **[Architecture](architecture.md)** — package layout, lazy imports, error model
 

@@ -26,9 +26,9 @@ def ffmpeg_path() -> str:
     if iio is not None:
         return iio.get_ffmpeg_exe()
 
-    from polytool.core.errors import PolytoolError
-
     from rich.markup import escape
+
+    from polytool.core.errors import PolytoolError
 
     raise PolytoolError(
         "ffmpeg not found.",
