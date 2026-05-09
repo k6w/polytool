@@ -56,6 +56,13 @@ N_CHALLENGE_PATTERNS = (
     "requested format is not available",
 )
 
+# Patterns that indicate per-session DRM lock — not something we can solve.
+DRM_PATTERNS = (
+    "drm protected",
+    "drm-protected",
+    "experiment that applies drm",
+)
+
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _NOISE_RE = re.compile(
@@ -151,10 +158,25 @@ def _n_challenge_hint(messages: list[str]) -> str | None:
     )
 
 
+def _drm_hint(messages: list[str]) -> str | None:
+    text = " ".join(messages).lower()
+    if not any(p in text for p in DRM_PATTERNS):
+        return None
+    return (
+        "YouTube has flagged this video as DRM-protected for your current session.\n"
+        "This is a per-account / per-session A/B experiment yt-dlp can't bypass.\n\n"
+        "Workarounds (any one usually works):\n"
+        "  • Try without cookies: [cyan]pt dl get URL --cookies-from-browser ''[/cyan]\n"
+        "  • Use a different browser profile: [cyan]pt dl setup --browser chrome[/cyan]\n"
+        "  • Try a different YouTube account.\n"
+        "  • Pick a different video — only some are DRM-flagged in your session."
+    )
+
+
 def _hint_for_error(message: str, logger: _DlLogger) -> str | None:
-    """Pick the best hint for a failure: bot-check first, then n-challenge."""
+    """Pick the best hint for a failure: DRM > bot-check > n-challenge."""
     pool = [message, *logger.warnings, *logger.errors]
-    return _bot_check_hint(message) or _n_challenge_hint(pool)
+    return _drm_hint(pool) or _bot_check_hint(message) or _n_challenge_hint(pool)
 
 
 # --------------------------------------------------------------------------- #
