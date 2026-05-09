@@ -149,13 +149,35 @@ def _n_challenge_hint(messages: list[str]) -> str | None:
     text = " ".join(messages).lower()
     if not any(p in text for p in N_CHALLENGE_PATTERNS):
         return None
-    return (
-        "YouTube needs a JavaScript runtime to solve its n-challenge.\n\n"
-        "Polytool can manage one for you (no system install needed):\n"
-        "  [cyan]pt dl runtime install[/cyan]    "
-        "[dim]# downloads Deno (~50 MB) into ~/.polytool/runtime/[/dim]\n\n"
-        "Then re-run [cyan]pt dl get[/cyan]. The runtime is auto-detected on every call."
+
+    # When cookies are configured we know we're in a logged-in session — that's
+    # by far the most common cause of these errors (YouTube tightens access for
+    # accounts in their DRM A/B bucket). Try anonymous access first.
+    using_cookies = bool(
+        config.get("dl", "cookies_from_browser") or config.get("dl", "cookies_file")
     )
+
+    fixes: list[str] = []
+    if using_cookies:
+        fixes.append(
+            "[bold]Most likely fix:[/bold] try without cookies. YouTube often gates "
+            "logged-in sessions into a DRM-only bucket.\n"
+            "  [cyan]pt dl setup --clear[/cyan]    [dim]# forget saved cookies (just for testing)[/dim]\n"
+            "  [cyan]pt dl get URL[/cyan]\n"
+            "If that works, re-save cookies for sites that need them: "
+            "[cyan]pt dl setup --browser firefox[/cyan]"
+        )
+    fixes.append(
+        "If it still fails, make sure a JS runtime is on PATH. Polytool can manage one:\n"
+        "  [cyan]pt dl runtime install[/cyan]    "
+        "[dim]# downloads Deno (~50 MB) into ~/.polytool/runtime/[/dim]"
+    )
+    fixes.append(
+        "Some videos are flagged DRM in your specific YouTube session — those can't "
+        "be downloaded by any tool. Try a different video or account."
+    )
+
+    return "\n\n".join(fixes)
 
 
 def _drm_hint(messages: list[str]) -> str | None:
