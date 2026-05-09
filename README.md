@@ -57,6 +57,15 @@ pt file archive ./project -o project.7z
 
 Run `pt --help` to see all groups, or `pt <group> --help` for any group's verbs (each verb's help has runnable Examples).
 
+## Documentation
+
+Full reference for every verb, argument, and option lives in **[docs/](docs/README.md)**:
+
+- **[Install guide](docs/install.md)** — slim vs full, all extras, Windows quoting
+- **Per-group reference** — [img](docs/img.md) · [vid](docs/vid.md) · [pdf](docs/pdf.md) · [dl](docs/dl.md) · [shot](docs/shot.md) · [qr](docs/qr.md) · [data](docs/data.md) · [enc](docs/enc.md) · [text](docs/text.md) · [convert](docs/convert.md) · [color](docs/color.md) · [cron](docs/cron.md) · [file](docs/file.md) · [gen](docs/gen.md) · [net](docs/net.md) · [clip](docs/clip.md)
+- **[Architecture](docs/architecture.md)** — package layout, lazy imports, error model, how to add a verb
+- **[Troubleshooting](docs/troubleshooting.md)** — every common error with a fix
+
 ## Feature reference (all 26 verbs)
 
 | Group | Verbs |
