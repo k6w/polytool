@@ -182,6 +182,105 @@ def test_browser_spec_parser() -> None:
     )
 
 
+def test_unknown_browser_rejected() -> None:
+    from polytool.cli.dl import _parse_browser_spec
+    from polytool.core.errors import PolytoolError
+
+    with pytest.raises(PolytoolError):
+        _parse_browser_spec("not-a-real-browser")
+
+
+def _make_fake_firefox_dir(root: Path, profile_name: str = "default") -> tuple[Path, Path]:
+    """Build a synthetic Firefox-fork data dir with a profiles.ini default profile."""
+    profile_dir = root / f"abcd1234.{profile_name}"
+    profile_dir.mkdir(parents=True)
+    ini = root / "profiles.ini"
+    ini.write_text(
+        f"[Profile0]\nName={profile_name}\nIsRelative=1\nPath={profile_dir.name}\nDefault=1\n"
+        "\n[Install01]\nDefault=" + profile_dir.name + "\nLocked=1\n",
+        encoding="utf-8",
+    )
+    return root, profile_dir
+
+
+def test_zen_resolution(monkeypatch, tmp_path) -> None:
+    """`pt dl setup --browser zen` should yield ('firefox', <profile-path>, ...)."""
+    data_dir, profile_dir = _make_fake_firefox_dir(tmp_path / "zen")
+
+    from polytool.cli import dl as dl_mod
+
+    monkeypatch.setattr(
+        dl_mod,
+        "find_firefox_fork_data_dir",
+        lambda name: data_dir if name == "zen" else None,
+    )
+
+    from polytool.cli.dl import _parse_browser_spec
+
+    result = _parse_browser_spec("zen")
+    assert result[0] == "firefox"
+    assert result[1] == str(profile_dir)
+
+
+def test_zen_with_named_profile(monkeypatch, tmp_path) -> None:
+    data_dir, _ = _make_fake_firefox_dir(tmp_path / "zen", profile_name="default")
+    # Add a second profile.
+    extra = data_dir / "xyz789.work"
+    extra.mkdir()
+    ini = data_dir / "profiles.ini"
+    ini.write_text(
+        ini.read_text(encoding="utf-8")
+        + f"\n[Profile1]\nName=work\nIsRelative=1\nPath={extra.name}\n",
+        encoding="utf-8",
+    )
+
+    from polytool.cli import dl as dl_mod
+
+    monkeypatch.setattr(
+        dl_mod,
+        "find_firefox_fork_data_dir",
+        lambda name: data_dir if name == "zen" else None,
+    )
+
+    from polytool.cli.dl import _parse_browser_spec
+
+    result = _parse_browser_spec("zen:work")
+    assert result[0] == "firefox"
+    assert result[1] == str(extra)
+
+
+def test_zen_not_installed(monkeypatch) -> None:
+    from polytool.cli import dl as dl_mod
+    from polytool.core.errors import PolytoolError
+
+    monkeypatch.setattr(dl_mod, "find_firefox_fork_data_dir", lambda name: None)
+
+    with pytest.raises(PolytoolError):
+        dl_mod._parse_browser_spec("zen")
+
+
+def test_librewolf_resolution(monkeypatch, tmp_path) -> None:
+    data_dir, profile_dir = _make_fake_firefox_dir(tmp_path / "librewolf")
+    from polytool.cli import dl as dl_mod
+
+    monkeypatch.setattr(
+        dl_mod,
+        "find_firefox_fork_data_dir",
+        lambda name: data_dir if name == "librewolf" else None,
+    )
+
+    result = dl_mod._parse_browser_spec("librewolf")
+    assert result[0] == "firefox"
+    assert result[1] == str(profile_dir)
+
+
+def test_supported_browsers_includes_forks() -> None:
+    from polytool.cli.dl import SUPPORTED_BROWSERS
+
+    for fork in ("zen", "librewolf", "waterfox", "floorp", "mullvad"):
+        assert fork in SUPPORTED_BROWSERS
+
+
 def test_get_username_password(runner, cli_app, monkeypatch, isolated_config) -> None:
     captured: dict = {}
     _install_fake_ydl(monkeypatch, captured)

@@ -8,6 +8,13 @@ from typing import Annotated
 import typer
 
 from polytool.core import config
+from polytool.core.browsers import (
+    ALL_BROWSERS,
+    FIREFOX_FORK_DIRS,
+    YT_DLP_NATIVE_BROWSERS,
+    find_firefox_fork_data_dir,
+    resolve_firefox_profile_dir,
+)
 from polytool.core.console import console, err_console
 from polytool.core.errors import PolytoolError
 
@@ -17,18 +24,9 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-# Browsers yt-dlp's `cookiesfrombrowser` knows about. Used by `pt dl setup`.
-SUPPORTED_BROWSERS = (
-    "chrome",
-    "firefox",
-    "edge",
-    "brave",
-    "chromium",
-    "opera",
-    "safari",
-    "vivaldi",
-    "whale",
-)
+# Browsers `pt dl setup` accepts. Includes yt-dlp's native list plus the
+# Firefox forks we resolve ourselves (zen, librewolf, waterfox, floorp, mullvad).
+SUPPORTED_BROWSERS = ALL_BROWSERS
 
 BOT_CHECK_HINTS = (
     "sign in",
@@ -43,9 +41,14 @@ BOT_CHECK_HINTS = (
 
 
 def _parse_browser_spec(spec: str) -> tuple[str, str | None, str | None, str | None]:
-    """Parse a yt-dlp ``--cookies-from-browser`` spec.
+    """Parse a polytool browser spec and return a yt-dlp-ready tuple.
 
     Format: ``browser[+keyring][:profile][::container]``.
+
+    For yt-dlp's native browsers this is a pass-through. For Firefox forks
+    (zen / librewolf / waterfox / floorp / mullvad), we locate the user's
+    data dir + profile directory and return ``('firefox', <abs-path>, …)`` —
+    yt-dlp's firefox extractor accepts an absolute profile path.
 
     >>> _parse_browser_spec("chrome")
     ('chrome', None, None, None)
@@ -69,6 +72,29 @@ def _parse_browser_spec(spec: str) -> tuple[str, str | None, str | None, str | N
         raise PolytoolError(
             f"Invalid --cookies-from-browser spec: {spec!r}",
             hint="Format: browser[+keyring][:profile][::container].",
+        )
+
+    # Firefox forks: resolve profile dir ourselves, pass it to yt-dlp as firefox.
+    if browser in FIREFOX_FORK_DIRS:
+        data_dir = find_firefox_fork_data_dir(browser)
+        if data_dir is None:
+            raise PolytoolError(
+                f"Could not find {browser!r} data directory.",
+                hint=(
+                    f"Make sure {browser} is installed and has been launched at "
+                    f"least once on this machine."
+                ),
+            )
+        try:
+            profile_dir = resolve_firefox_profile_dir(data_dir, profile)
+        except FileNotFoundError as exc:
+            raise PolytoolError(str(exc)) from exc
+        return ("firefox", str(profile_dir), keyring or None, container or None)
+
+    if browser not in YT_DLP_NATIVE_BROWSERS:
+        raise PolytoolError(
+            f"Unknown browser {browser!r}.",
+            hint=f"Supported: {', '.join(SUPPORTED_BROWSERS)}.",
         )
     return (browser, profile or None, keyring or None, container or None)
 

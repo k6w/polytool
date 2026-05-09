@@ -54,7 +54,19 @@ pt dl setup --clear                      # forget saved cookies
 | `--show` | — | flag | off | Print the saved config (and the file location). |
 | `--clear` | — | flag | off | Remove the saved cookie config. |
 
-If no flags are passed, `pt dl setup` runs interactively and prompts you to pick from chrome/firefox/edge/brave/chromium/opera/safari/vivaldi/whale.
+If no flags are passed, `pt dl setup` runs interactively and prompts you to pick a browser.
+
+### Supported browsers
+
+**Native** (handled by yt-dlp directly):
+chrome · firefox · edge · brave · chromium · opera · safari · vivaldi · whale
+
+**Firefox forks** (polytool resolves the profile path itself, then hands it to yt-dlp's firefox extractor):
+**zen** · **librewolf** · **waterfox** · **floorp** · **mullvad**
+
+For Firefox forks polytool reads the fork's standard `profiles.ini` to find the default profile (or the named profile if you pass `:profile-name`). Cross-platform — works on Linux, macOS, and Windows.
+
+> **Don't see your browser?** If it's a Chromium-based fork (Arc, Yandex, Sidekick, etc.), yt-dlp can't auto-extract its cookies. Workaround: export the cookies manually with a browser extension like [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) and use `pt dl setup --cookies cookies.txt`.
 
 The config lives at `~/.polytool/config.toml` (POSIX) or `%USERPROFILE%\.polytool\config.toml` (Windows).
 
@@ -65,6 +77,12 @@ pt dl setup                                  # interactive
 pt dl setup --browser firefox                # save firefox as default
 pt dl setup --browser chrome:Default         # save chrome's "Default" profile
 pt dl setup --browser firefox+gnomekeyring   # firefox using gnomekeyring
+pt dl setup --browser zen                    # Zen Browser (Firefox fork)
+pt dl setup --browser zen:work               # Zen with the "work" profile
+pt dl setup --browser librewolf              # LibreWolf
+pt dl setup --browser waterfox               # Waterfox
+pt dl setup --browser floorp                 # Floorp
+pt dl setup --browser mullvad                # Mullvad Browser
 pt dl setup --cookies ~/cookies.txt          # save a cookies file
 pt dl setup --show
 pt dl setup --clear

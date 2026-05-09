@@ -30,18 +30,41 @@ Run these once and forget — saved at `~/.polytool/config.toml` (or `%USERPROFI
 ### `pt dl setup`
 
 ```bash
-# Interactive — picks chrome/firefox/edge/brave/chromium/opera/safari/vivaldi/whale
+# Interactive picker (lists every supported browser)
 pt dl setup
 
-# Non-interactive
-pt dl setup --browser firefox                 # any saved browser
-pt dl setup --browser chrome:Default          # specific profile
-pt dl setup --cookies ~/cookies.txt           # cookies.txt path
+# Native browsers (yt-dlp handles directly)
+pt dl setup --browser chrome
+pt dl setup --browser firefox
+pt dl setup --browser edge
+pt dl setup --browser brave
+pt dl setup --browser chromium
+pt dl setup --browser opera
+pt dl setup --browser safari        # macOS only
+pt dl setup --browser vivaldi
+pt dl setup --browser whale
+
+# Firefox forks (polytool resolves the profile, hands it to yt-dlp's firefox)
+pt dl setup --browser zen
+pt dl setup --browser zen:work      # specific profile name
+pt dl setup --browser librewolf
+pt dl setup --browser waterfox
+pt dl setup --browser floorp
+pt dl setup --browser mullvad
+
+# Profile + keyring + container syntax (yt-dlp format)
+pt dl setup --browser firefox:default
+pt dl setup --browser firefox+gnomekeyring:default::work-container
+
+# A pre-exported Netscape cookies.txt
+pt dl setup --cookies ~/cookies.txt
 
 # Inspect / clear
 pt dl setup --show
 pt dl setup --clear
 ```
+
+For Chromium-based forks not in the list (Arc, Yandex, Sidekick, …) export `cookies.txt` from a browser extension and use `--cookies`.
 
 ### Bot-check auto-hint
 
