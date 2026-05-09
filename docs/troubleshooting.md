@@ -100,13 +100,52 @@ Same as `pt img ocr` — install Tesseract or use `--engine easyocr`.
 
 ## Downloads (`pt dl`)
 
-### "Download failed: Sign in to confirm your age"
+### "Sign in to confirm you're not a bot" / "Sign in to confirm your age"
 
-The video is age-gated. yt-dlp supports cookies; passing them through polytool isn't yet exposed (planned for v0.2). For now, run yt-dlp directly with `--cookies-from-browser`.
+YouTube wants a logged-in session. Configure cookies once and forget about it:
 
-### "Download failed: HTTP Error 429"
+```bash
+pt dl setup --browser firefox     # or chrome / edge / brave / zen / librewolf / ...
+pt dl get URL
+```
 
-Rate limited. Wait a bit, or run with `--limit-rate 1M` (not yet exposed; pass via yt-dlp directly for now).
+For one-off use without saving:
+
+```bash
+pt dl get URL --cookies-from-browser firefox
+pt dl get URL --cookies cookies.txt          # if you have an exported file
+```
+
+See [`docs/dl.md`](dl.md#pt-dl-setup) for the full list of supported browsers (including Zen, LibreWolf, Waterfox, Floorp, Mullvad).
+
+### "Requested format is not available" / "Only images are available" / DRM-protected
+
+This usually means YouTube has placed your account into a stricter A/B bucket (the experiment that applies DRM to all videos on certain clients). The fix is almost always to **try without cookies first**:
+
+```bash
+pt dl setup --clear           # temporarily forget saved cookies
+pt dl get URL                 # try anonymous
+pt dl setup --browser firefox # restore for sites that need cookies
+```
+
+Polytool's error panel suggests this automatically when it detects the n-challenge / format-not-available pattern.
+
+If anonymous still fails, your URL may genuinely be DRM-locked for any unauthorized client and there's no workaround.
+
+### "n challenge solving failed"
+
+YouTube uses a JavaScript challenge to obfuscate format URLs. Polytool ships `yt-dlp-ejs` (the n-challenge solver scripts) in the `[dl]` extra. It needs a JS runtime on PATH:
+
+- **Already on PATH?** Most users have one (Node.js, Deno, or Bun).
+- **None?** `pt dl get` auto-installs Deno (~50 MB) into `~/.polytool/runtime/` on first run. Or run `pt dl runtime install` manually.
+
+### "HTTP Error 429" / Rate limited
+
+Wait a few minutes and retry, or switch to a different account / IP. polytool doesn't expose `--limit-rate` yet; if you need fine-grained rate control, drop down to yt-dlp directly for now.
+
+### `pt dl get` shows lots of yellow `warning:` lines on success
+
+That was the v0.2.7-and-earlier behavior. Upgrade to v0.2.9+ — per-client discovery warnings (n-challenge / PO-token / DRM) are now silently captured and only surfaced via the error hint when the download actually fails. Use `pt dl get URL --verbose` if you ever want them back.
 
 ## Screenshots (`pt shot`)
 

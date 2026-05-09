@@ -716,9 +716,7 @@ def cmd_get(
             f"({_human_size(size)} in {_human_duration(elapsed)})[/dim]"
         )
     else:
-        console.print(
-            f"        [dim]({_human_size(size)} in {_human_duration(elapsed)})[/dim]"
-        )
+        console.print(f"        [dim]({_human_size(size)} in {_human_duration(elapsed)})[/dim]")
 
 
 @app.command("info")
