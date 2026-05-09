@@ -121,7 +121,7 @@ def cmd_install() -> None:
     except FileNotFoundError as exc:
         raise PolytoolError(
             "Playwright not found.",
-            hint="Install: [cyan]uv tool install 'polytool[shot]'[/cyan]",
+            hint="Install: [cyan]uv tool install 'polytool\\[shot]'[/cyan]",
         ) from exc
     except subprocess.CalledProcessError as exc:
         raise PolytoolError(f"playwright install failed (exit {exc.returncode})") from exc

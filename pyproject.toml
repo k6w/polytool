@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "polytool"
-version = "0.2.0"
+version = "0.2.1"
 description = "One-binary CLI bundling 26 everyday utilities — image/video/PDF conversion, background removal, OCR, QR codes, hashing, downloads, and more"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -76,8 +76,8 @@ dev = [
 ]
 
 [project.scripts]
-polytool = "polytool.cli:app"
-pt = "polytool.cli:app"
+polytool = "polytool.cli:run"
+pt = "polytool.cli:run"
 
 [project.urls]
 Homepage = "https://github.com/k6w/polytool"

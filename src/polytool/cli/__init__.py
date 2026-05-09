@@ -7,6 +7,8 @@ Heavy imports (Pillow, ffmpeg, rembg) happen inside command bodies via
 
 from __future__ import annotations
 
+import sys
+
 import typer
 
 from polytool import __version__
@@ -28,9 +30,7 @@ from polytool.cli import (
     text,
     vid,
 )
-from polytool.core.errors import install_excepthook
-
-install_excepthook()
+from polytool.core.errors import PolytoolError, render_panel
 
 app = typer.Typer(
     name="polytool",
@@ -38,7 +38,23 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode="rich",
+    # We handle PolytoolError ourselves via the `main()` wrapper below; disable
+    # Typer's pretty-traceback so it doesn't squash our hints.
+    pretty_exceptions_enable=False,
 )
+
+
+def run() -> None:
+    """Console-script entry point — runs the Typer app and renders PolytoolError nicely.
+
+    (Defined with a unique name to avoid clashing with the ``@app.callback()``
+    function below — both would otherwise be named ``main`` in this module.)
+    """
+    try:
+        app()
+    except PolytoolError as exc:
+        render_panel(exc.message, exc.hint)
+        sys.exit(1)
 
 
 def _version_callback(value: bool) -> None:

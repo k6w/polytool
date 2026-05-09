@@ -28,8 +28,10 @@ def ffmpeg_path() -> str:
 
     from polytool.core.errors import PolytoolError
 
+    from rich.markup import escape
+
     raise PolytoolError(
         "ffmpeg not found.",
         hint="Install ffmpeg system-wide, or install the 'vid' extra: "
-        "[cyan]uv tool install 'polytool[vid]'[/cyan]",
+        f"[cyan]uv tool install '{escape('polytool[vid]')}'[/cyan]",
     )

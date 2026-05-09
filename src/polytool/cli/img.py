@@ -41,7 +41,7 @@ def _open_image(source: Path):
         except ImportError as exc:
             raise PolytoolError(
                 "HEIC support missing.",
-                hint="Install: [cyan]uv tool install 'polytool[img]'[/cyan]",
+                hint="Install: [cyan]uv tool install 'polytool\\[img]'[/cyan]",
             ) from exc
     if suffix == ".avif":
         try:
@@ -49,7 +49,7 @@ def _open_image(source: Path):
         except ImportError as exc:
             raise PolytoolError(
                 "AVIF support missing.",
-                hint="Install: [cyan]uv tool install 'polytool[img]'[/cyan]",
+                hint="Install: [cyan]uv tool install 'polytool\\[img]'[/cyan]",
             ) from exc
 
     try:
