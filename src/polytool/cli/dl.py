@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 
-from polytool.core import config
+from polytool.core import config, runtime
 from polytool.core.browsers import (
     ALL_BROWSERS,
     FIREFOX_FORK_DIRS,
@@ -38,6 +48,193 @@ BOT_CHECK_HINTS = (
     "login required",
     "rate limit",
 )
+
+# Patterns that indicate YouTube's n-challenge / JS-runtime gap.
+N_CHALLENGE_PATTERNS = (
+    "n challenge",
+    "only images are available",
+    "requested format is not available",
+)
+
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+_NOISE_RE = re.compile(
+    r"^(?:Extracting URL|Downloading\s\S+|Extracting cookies|Extracted\s|"
+    r"\[\w+\]\s|Sleeping|Skipping|Deleting original file)"
+)
+
+
+def _strip(msg: object) -> str:
+    text = _ANSI_RE.sub("", str(msg)).strip()
+    for prefix in ("WARNING:", "ERROR:", "[generic]", "[youtube]"):
+        if text.startswith(prefix):
+            text = text[len(prefix) :].strip()
+    return text
+
+
+class _DlLogger:
+    """Capture yt-dlp warnings/errors so we can filter noise and surface hints."""
+
+    def __init__(self) -> None:
+        self.warnings: list[str] = []
+        self.errors: list[str] = []
+
+    def debug(self, msg: object) -> None:
+        pass
+
+    def info(self, msg: object) -> None:
+        pass
+
+    def warning(self, msg: object) -> None:
+        clean = _strip(msg)
+        if not clean:
+            return
+        self.warnings.append(clean)
+        if not _NOISE_RE.match(clean):
+            err_console.print(f"[yellow]warning:[/yellow] {clean}")
+
+    def error(self, msg: object) -> None:
+        clean = _strip(msg)
+        if clean:
+            self.errors.append(clean)
+
+
+def _make_progress() -> Progress:
+    """Rich progress bar tuned for downloads (title · bar · % · size · speed · ETA)."""
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[bold cyan]{task.description}"),
+        BarColumn(bar_width=None),
+        TextColumn("[progress.percentage]{task.percentage:>5.1f}%"),
+        DownloadColumn(),
+        TransferSpeedColumn(),
+        TimeRemainingColumn(),
+        console=err_console,
+        transient=False,
+    )
+
+
+def _make_progress_hook(progress: Progress, state: dict):
+    """Build a yt-dlp progress hook that drives the Rich progress bar."""
+
+    def hook(d: dict) -> None:
+        status = d.get("status")
+        if status == "downloading":
+            total = d.get("total_bytes") or d.get("total_bytes_estimate")
+            downloaded = d.get("downloaded_bytes", 0)
+            info = d.get("info_dict") or {}
+            title = info.get("title") or Path(d.get("filename", "download")).name
+            disp = title if len(title) <= 50 else title[:47] + "..."
+            tid = state.get("task_id")
+            if tid is None:
+                state["task_id"] = progress.add_task(disp, total=total)
+            else:
+                progress.update(tid, completed=downloaded, total=total, description=disp)
+        elif status == "finished":
+            tid = state.pop("task_id", None)
+            if tid is not None and progress.tasks[tid].total:
+                progress.update(tid, completed=progress.tasks[tid].total)
+
+    return hook
+
+
+def _n_challenge_hint(messages: list[str]) -> str | None:
+    text = " ".join(messages).lower()
+    if not any(p in text for p in N_CHALLENGE_PATTERNS):
+        return None
+    return (
+        "YouTube needs a JavaScript runtime to solve its n-challenge.\n\n"
+        "Polytool can manage one for you (no system install needed):\n"
+        "  [cyan]pt dl runtime install[/cyan]    "
+        "[dim]# downloads Deno (~50 MB) into ~/.polytool/runtime/[/dim]\n\n"
+        "Then re-run [cyan]pt dl get[/cyan]. The runtime is auto-detected on every call."
+    )
+
+
+def _hint_for_error(message: str, logger: _DlLogger) -> str | None:
+    """Pick the best hint for a failure: bot-check first, then n-challenge."""
+    pool = [message, *logger.warnings, *logger.errors]
+    return _bot_check_hint(message) or _n_challenge_hint(pool)
+
+
+# --------------------------------------------------------------------------- #
+# `pt dl runtime` — manage the bundled JS runtime
+# --------------------------------------------------------------------------- #
+runtime_app = typer.Typer(
+    name="runtime",
+    help="Manage the bundled JavaScript runtime (Deno) used to solve YouTube's n-challenge.",
+    no_args_is_help=True,
+)
+
+
+@runtime_app.command("install")
+def cmd_runtime_install(
+    force: Annotated[
+        bool, typer.Option("--force", help="Re-download even if already installed.")
+    ] = False,
+) -> None:
+    """Download Deno into ~/.polytool/runtime/ for yt-dlp to use.
+
+    Examples:
+
+        pt dl runtime install
+        pt dl runtime install --force
+    """
+    sys_path = runtime.system_runtime_path()
+    if sys_path and not force:
+        console.print(
+            f"[green]A system JS runtime is already on PATH:[/green] {sys_path}\n"
+            "[dim]No managed Deno needed. Pass --force to install anyway.[/dim]"
+        )
+        return
+    if runtime.is_managed_deno_installed() and not force:
+        console.print(
+            f"[green]Managed Deno already installed:[/green] {runtime.deno_binary_path()}\n"
+            "[dim]Pass --force to re-download.[/dim]"
+        )
+        return
+    try:
+        binary = runtime.install_deno()
+    except Exception as exc:
+        raise PolytoolError(f"Could not install Deno: {exc}") from exc
+    runtime.ensure_runtime_in_path()
+    console.print(f"[green]Installed Deno[/green] at [bold]{binary}[/bold]")
+
+
+@runtime_app.command("show")
+def cmd_runtime_show() -> None:
+    """Show the current JS-runtime status (system or managed).
+
+    Examples:
+
+        pt dl runtime show
+    """
+    sys_path = runtime.system_runtime_path()
+    if sys_path:
+        console.print(f"[cyan]system runtime:[/cyan] {sys_path}")
+    if runtime.is_managed_deno_installed():
+        console.print(f"[cyan]managed deno:[/cyan]  {runtime.deno_binary_path()}")
+    if not sys_path and not runtime.is_managed_deno_installed():
+        console.print("[dim]No JS runtime found.[/dim]")
+        console.print("Run [cyan]pt dl runtime install[/cyan] to fetch one.")
+
+
+@runtime_app.command("clear")
+def cmd_runtime_clear() -> None:
+    """Remove the managed Deno install at ~/.polytool/runtime/.
+
+    Examples:
+
+        pt dl runtime clear
+    """
+    if not runtime.RUNTIME_DIR.exists():
+        console.print("[dim]Nothing to clear — managed runtime dir doesn't exist.[/dim]")
+        return
+    runtime.remove_runtime()
+    console.print(f"[green]Removed[/green] {runtime.RUNTIME_DIR}")
+
+
+app.add_typer(runtime_app, name="runtime")
 
 
 def _parse_browser_spec(spec: str) -> tuple[str, str | None, str | None, str | None]:
@@ -316,12 +513,43 @@ def cmd_get(
     yt_dlp = require_extra("yt_dlp", extra="dl")
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    # Make sure a JS runtime is reachable before we hit yt-dlp. If nothing is
+    # installed, fetch Deno automatically (one-time ~50 MB) — this is what the
+    # user expects from `polytool[full]`: it just works.
+    if runtime.ensure_runtime_in_path() is None:
+        err_console.print(
+            "[dim]No JS runtime found — polytool will fetch Deno once "
+            "(~50 MB into ~/.polytool/runtime/) so YouTube's n-challenge "
+            "can be solved.[/dim]"
+        )
+        try:
+            runtime.install_deno()
+            runtime.ensure_runtime_in_path()
+        except Exception as exc:
+            err_console.print(
+                f"[yellow]warning:[/yellow] auto-install failed: {exc}\n"
+                "[dim]Run [cyan]pt dl runtime install[/cyan] manually, "
+                "or install Deno/Node yourself.[/dim]"
+            )
+    logger = _DlLogger()
+    progress = _make_progress()
+    state: dict = {}
     opts: dict = {
         "outtmpl": str(output_dir / template),
         "noplaylist": False,
-        "quiet": False,
-        "no_warnings": False,
-        "progress": True,
+        "quiet": True,  # silence yt-dlp's stdout — we render our own UI
+        "no_warnings": True,  # warnings flow through our logger instead
+        "noprogress": True,  # we render a Rich progress bar
+        "logger": logger,
+        "progress_hooks": [_make_progress_hook(progress, state)],
+        # Try multiple YouTube clients — `tv` alone often fails the n-challenge
+        # while web/android/ios still return usable formats. yt-dlp aggregates
+        # formats across all clients before selecting.
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web", "web_safari", "mweb", "android", "ios", "tv"],
+            }
+        },
     }
     if audio_only:
         opts["format"] = "bestaudio/best"
@@ -330,6 +558,11 @@ def cmd_get(
         ]
     elif format_:
         opts["format"] = format_
+    else:
+        # `bv*+ba/b/18` — best video+audio, else best single, else fallback
+        # to YouTube's reliable 360p mp4 (format 18) which never needs the
+        # n-challenge solver and is available almost universally.
+        opts["format"] = "bv*+ba/b/18"
 
     _apply_cookie_opts(opts, cookies_from_browser, cookies_file)
     if username is not None:
@@ -340,16 +573,20 @@ def cmd_get(
         opts["videopassword"] = video_password
     if "cookiesfrombrowser" in opts and not (cookies_from_browser or cookies_file):
         err_console.print(
-            f"[dim]Using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
+            f"[dim]using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
         )
 
     try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        with progress, yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
     except yt_dlp.utils.DownloadError as exc:
-        raise PolytoolError(f"Download failed: {exc}", hint=_bot_check_hint(str(exc))) from exc
+        raise PolytoolError(
+            f"Download failed: {_strip(exc)}", hint=_hint_for_error(str(exc), logger)
+        ) from exc
     except Exception as exc:
-        raise PolytoolError(f"Download failed: {exc}", hint=_bot_check_hint(str(exc))) from exc
+        raise PolytoolError(
+            f"Download failed: {_strip(exc)}", hint=_hint_for_error(str(exc), logger)
+        ) from exc
     console.print("[green]Done.[/green]")
 
 
@@ -401,7 +638,18 @@ def cmd_info(
 
     yt_dlp = require_extra("yt_dlp", extra="dl")
 
-    opts: dict = {"quiet": True, "no_warnings": True}
+    runtime.ensure_runtime_in_path()
+    logger = _DlLogger()
+    opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "logger": logger,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["web", "web_safari", "mweb", "android", "ios", "tv"],
+            }
+        },
+    }
     _apply_cookie_opts(opts, cookies_from_browser, cookies_file)
     if username is not None:
         opts["username"] = username
@@ -411,7 +659,7 @@ def cmd_info(
         opts["videopassword"] = video_password
     if "cookiesfrombrowser" in opts and not (cookies_from_browser or cookies_file):
         err_console.print(
-            f"[dim]Using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
+            f"[dim]using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
         )
 
     # process=False skips yt-dlp's format-selection step. We only want metadata,
@@ -421,7 +669,9 @@ def cmd_info(
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False, process=False)
     except Exception as exc:
-        raise PolytoolError(f"Could not fetch info: {exc}", hint=_bot_check_hint(str(exc))) from exc
+        raise PolytoolError(
+            f"Could not fetch info: {_strip(exc)}", hint=_hint_for_error(str(exc), logger)
+        ) from exc
 
     if info is None:
         raise PolytoolError("yt-dlp returned no metadata for this URL.")

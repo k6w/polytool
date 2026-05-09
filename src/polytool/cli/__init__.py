@@ -7,7 +7,9 @@ Heavy imports (Pillow, ffmpeg, rembg) happen inside command bodies via
 
 from __future__ import annotations
 
+import subprocess
 import sys
+from typing import Annotated
 
 import typer
 
@@ -30,6 +32,8 @@ from polytool.cli import (
     text,
     vid,
 )
+from polytool.core import runtime
+from polytool.core.console import console, err_console
 from polytool.core.errors import PolytoolError, render_panel
 
 app = typer.Typer(
@@ -75,6 +79,115 @@ def main(
     ),
 ) -> None:
     """polytool — one-binary CLI bundling 26 everyday utilities."""
+
+
+@app.command("setup")
+def cmd_setup(
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip prompts; install everything."),
+    ] = False,
+    skip_runtime: Annotated[
+        bool,
+        typer.Option("--skip-runtime", help="Don't fetch Deno (used by `pt dl get`)."),
+    ] = False,
+    skip_chromium: Annotated[
+        bool,
+        typer.Option(
+            "--skip-chromium", help="Don't fetch Playwright Chromium (used by `pt shot web`)."
+        ),
+    ] = False,
+) -> None:
+    """One-shot post-install: fetch every binary the [full] extra needs.
+
+    Most polytool features work the moment you `uv tool install 'polytool[full]'`.
+    A handful need extra one-time downloads that aren't pip packages:
+
+    - **Deno (~50 MB)** — solves YouTube's n-challenge for `pt dl get`.
+    - **Playwright Chromium (~150 MB)** — used by `pt shot web`.
+
+    `pt setup` fetches both. Run it once and you're done; you can also run
+    each install separately via `pt dl runtime install` and `pt shot install`.
+
+    Examples:
+
+        pt setup                # interactive; default-yes to each step
+        pt setup -y             # silent; install everything
+        pt setup --skip-chromium  # everything except Chromium
+    """
+    steps: list[tuple[str, str, callable]] = []  # type: ignore[type-arg]
+
+    if not skip_runtime:
+        steps.append(
+            (
+                "JS runtime (Deno)",
+                "for `pt dl get` to solve YouTube's n-challenge",
+                _install_runtime_step,
+            )
+        )
+    if not skip_chromium:
+        steps.append(
+            (
+                "Playwright Chromium",
+                "for `pt shot web`",
+                _install_chromium_step,
+            )
+        )
+
+    if not steps:
+        console.print("[dim]Nothing to do — both --skip-* flags set.[/dim]")
+        return
+
+    console.print("[bold]polytool setup[/bold]\n")
+    console.print("This will fetch one-time downloads needed by certain commands:\n")
+    for name, why, _ in steps:
+        console.print(f"  • [cyan]{name}[/cyan] — {why}")
+    console.print()
+
+    if not yes and not typer.confirm("Continue?", default=True):
+        console.print("[dim]Cancelled.[/dim]")
+        return
+
+    failures: list[str] = []
+    for name, _why, step in steps:
+        console.print(f"[bold]→ {name}[/bold]")
+        try:
+            step()
+        except Exception as exc:
+            failures.append(f"{name}: {exc}")
+            err_console.print(f"[red]failed:[/red] {exc}")
+        console.print()
+
+    if failures:
+        msg = "Some steps failed:\n  " + "\n  ".join(failures)
+        raise PolytoolError(msg)
+    console.print("[green]All set.[/green] You can now use every polytool command.")
+
+
+def _install_runtime_step() -> None:
+    sys_runtime = runtime.system_runtime_path()
+    if sys_runtime:
+        console.print(f"[green]system runtime already on PATH:[/green] {sys_runtime}")
+        return
+    if runtime.is_managed_deno_installed():
+        console.print(f"[green]already installed:[/green] {runtime.deno_binary_path()}")
+        return
+    binary = runtime.install_deno()
+    runtime.ensure_runtime_in_path()
+    console.print(f"[green]installed:[/green] {binary}")
+
+
+def _install_chromium_step() -> None:
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=True,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "Playwright Python package missing. Install with: uv tool install 'polytool[shot]'"
+        ) from exc
+    console.print("[green]Chromium installed.[/green]")
 
 
 app.add_typer(enc.app, name="enc")
