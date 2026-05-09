@@ -414,13 +414,36 @@ def cmd_info(
             f"[dim]Using saved cookies-from-browser: {opts['cookiesfrombrowser'][0]}[/dim]"
         )
 
+    # process=False skips yt-dlp's format-selection step. We only want metadata,
+    # and on some sites (YouTube especially) the default format selector
+    # fails with "Requested format is not available" on otherwise-valid videos.
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = ydl.extract_info(url, download=False, process=False)
     except Exception as exc:
         raise PolytoolError(f"Could not fetch info: {exc}", hint=_bot_check_hint(str(exc))) from exc
 
-    interesting = ("title", "uploader", "duration", "view_count", "upload_date", "webpage_url")
+    if info is None:
+        raise PolytoolError("yt-dlp returned no metadata for this URL.")
+
+    interesting = (
+        "title",
+        "uploader",
+        "channel",
+        "duration",
+        "view_count",
+        "like_count",
+        "upload_date",
+        "live_status",
+        "webpage_url",
+    )
+    shown = False
     for key in interesting:
         if key in info and info[key] is not None:
             console.print(f"[cyan]{key}[/cyan]: {info[key]}")
+            shown = True
+    # Playlists and some sites return only `entries` and a few top-level fields.
+    if not shown and info.get("_type") == "playlist":
+        console.print(f"[cyan]playlist[/cyan]: {info.get('title') or info.get('id')}")
+        entries = info.get("entries") or []
+        console.print(f"[cyan]entries[/cyan]: {len(list(entries))}")

@@ -37,8 +37,9 @@ def _install_fake_ydl(monkeypatch, captured: dict, *, info=None, raise_dl_error=
             if raise_dl_error:
                 raise yt_dlp.utils.DownloadError(raise_dl_error)
 
-        def extract_info(self, url, download):
+        def extract_info(self, url, download=True, process=True, **_kwargs):
             captured["urls"] = [url]
+            captured["process"] = process
             if raise_dl_error:
                 raise yt_dlp.utils.DownloadError(raise_dl_error)
             return info or {"title": "Example", "webpage_url": url}
@@ -72,6 +73,8 @@ def test_info_calls_ytdlp(runner, cli_app, monkeypatch, isolated_config) -> None
     assert result.exit_code == 0
     assert "Example" in result.stdout
     assert "TestChannel" in result.stdout
+    # Info should bypass format processing.
+    assert captured["process"] is False
 
 
 def test_get_error_with_bot_hint(runner, cli_app, monkeypatch, isolated_config) -> None:
