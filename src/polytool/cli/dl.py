@@ -653,14 +653,9 @@ def cmd_get(
         "noprogress": True,  # we render a Rich progress bar
         "logger": logger,
         "progress_hooks": [_make_progress_hook(progress, state)],
-        # Try multiple YouTube clients — `tv` alone often fails the n-challenge
-        # while web/android/ios still return usable formats. yt-dlp aggregates
-        # formats across all clients before selecting.
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web", "web_safari", "mweb", "android", "ios", "tv"],
-            }
-        },
+        # Let current yt-dlp select the appropriate YouTube client. Forcing a
+        # broad client list causes duplicate requests and noisy SABR warnings,
+        # and tends to age badly as YouTube changes its APIs.
     }
     if audio_only:
         opts["format"] = "bestaudio/best"
@@ -773,11 +768,6 @@ def cmd_info(
         "quiet": True,
         "no_warnings": True,
         "logger": logger,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web", "web_safari", "mweb", "android", "ios", "tv"],
-            }
-        },
     }
     _apply_cookie_opts(opts, cookies_from_browser, cookies_file)
     if username is not None:

@@ -55,6 +55,9 @@ uv tool install 'polytool[ocr]'                    # OCR (pytesseract / easyocr)
 uv tool install 'polytool[archive]'                # 7z support
 ```
 
+QR decoding also needs the native `zbar` library. On macOS, run `brew install zbar`;
+on Debian/Ubuntu, run `sudo apt install libzbar0`.
+
 ## All extras
 
 | Extra | Adds | Approx. size |

@@ -76,8 +76,9 @@ def cmd_uuid(
             typer.echo(str(_uuid.uuid4()))
         elif v == "7":
             # Python 3.13 added uuid.uuid7
-            if hasattr(_uuid, "uuid7"):
-                typer.echo(str(_uuid.uuid7()))
+            uuid7 = getattr(_uuid, "uuid7", None)
+            if uuid7 is not None:
+                typer.echo(str(uuid7()))
             else:
                 # Manual v7 fallback (won't be hit on 3.13+, but defensive)
                 import os

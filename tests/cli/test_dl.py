@@ -21,6 +21,7 @@ def isolated_config(tmp_path, monkeypatch):
 
 def _install_fake_ydl(monkeypatch, captured: dict, *, info=None, raise_dl_error=None):
     import yt_dlp
+    from yt_dlp.utils import DownloadError
 
     class FakeYDL:
         def __init__(self, opts):
@@ -35,13 +36,13 @@ def _install_fake_ydl(monkeypatch, captured: dict, *, info=None, raise_dl_error=
         def download(self, urls):
             captured["urls"] = list(urls)
             if raise_dl_error:
-                raise yt_dlp.utils.DownloadError(raise_dl_error)
+                raise DownloadError(raise_dl_error)
 
         def extract_info(self, url, download=True, process=True, **_kwargs):
             captured["urls"] = [url]
             captured["process"] = process
             if raise_dl_error:
-                raise yt_dlp.utils.DownloadError(raise_dl_error)
+                raise DownloadError(raise_dl_error)
             return info or {"title": "Example", "webpage_url": url}
 
     monkeypatch.setattr(yt_dlp, "YoutubeDL", FakeYDL)
@@ -60,6 +61,7 @@ def test_get_calls_ytdlp(runner, cli_app, monkeypatch, tmp_path, isolated_config
     pps = captured["opts"]["postprocessors"]
     assert any(pp["key"] == "FFmpegExtractAudio" for pp in pps)
     assert captured["opts"]["format"] == "bestaudio/best"
+    assert "extractor_args" not in captured["opts"]
 
 
 def test_info_calls_ytdlp(runner, cli_app, monkeypatch, isolated_config) -> None:
@@ -75,6 +77,7 @@ def test_info_calls_ytdlp(runner, cli_app, monkeypatch, isolated_config) -> None
     assert "TestChannel" in result.stdout
     # Info should bypass format processing.
     assert captured["process"] is False
+    assert "extractor_args" not in captured["opts"]
 
 
 def test_get_error_with_bot_hint(runner, cli_app, monkeypatch, isolated_config) -> None:

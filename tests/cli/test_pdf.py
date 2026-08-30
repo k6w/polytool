@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import pytest
 
 pytest.importorskip("pypdf")
@@ -76,6 +79,29 @@ def test_from_images(runner, cli_app, tiny_jpg, tmp_path) -> None:
 
     reader = pypdf.PdfReader(str(out))
     assert len(reader.pages) == 2
+
+
+def test_from_png_images_in_fresh_process(tiny_png, tmp_path) -> None:
+    """PDF creation must not depend on a JPEG fixture importing its plugin first."""
+    out = tmp_path / "fresh.pdf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "polytool",
+            "pdf",
+            "from-images",
+            str(tiny_png),
+            str(tiny_png),
+            "-o",
+            str(out),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert out.read_bytes().startswith(b"%PDF")
 
 
 def test_missing_input(runner, cli_app, tmp_path) -> None:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from io import TextIOWrapper
 from typing import Annotated
 
 import typer
@@ -38,7 +39,7 @@ from polytool.core.errors import PolytoolError, render_panel
 
 app = typer.Typer(
     name="polytool",
-    help="polytool — one-binary CLI bundling 26 everyday utilities (pt for short).",
+    help="polytool — one CLI with 60+ everyday commands (pt for short).",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode="rich",
@@ -56,7 +57,9 @@ def _force_utf8_io() -> None:
     import contextlib
 
     for stream in (sys.stdout, sys.stderr):
-        with contextlib.suppress(AttributeError, OSError):
+        if not isinstance(stream, TextIOWrapper):
+            continue
+        with contextlib.suppress(OSError):
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 
@@ -91,7 +94,7 @@ def main(
         help="Show version and exit.",
     ),
 ) -> None:
-    """polytool — one-binary CLI bundling 26 everyday utilities."""
+    """polytool — one CLI with 60+ everyday commands."""
 
 
 @app.command("setup")

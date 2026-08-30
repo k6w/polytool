@@ -2,7 +2,7 @@
 
 Detailed reference for every command in `polytool` (binary `pt`).
 
-`pt` is built around 16 subcommand groups, each with one or more verbs (26 verbs in total). Every verb has its own page below — argument types, defaults, all flags, exit codes, and runnable examples.
+`pt` is built around 16 subcommand groups with more than 60 commands. Every command is documented below with argument types, defaults, flags, exit behavior, and runnable examples.
 
 ## Quick links
 

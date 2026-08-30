@@ -229,12 +229,22 @@ def cmd_from_images(
     from polytool.core.lazy import require_extra
 
     PIL_Image = require_extra("PIL.Image", extra="img")
+    # Pillow loads encoders lazily. A fresh CLI process that opens only PNGs
+    # has not registered JPEG yet, but Pillow's PDF writer uses it internally.
+    require_extra("PIL.JpegImagePlugin", extra="img")
 
     if not inputs:
         raise PolytoolError("No input images")
-    imgs = [PIL_Image.open(p).convert("RGB") for p in inputs]
+    imgs = []
+    for path in inputs:
+        with PIL_Image.open(path) as image:
+            imgs.append(image.convert("RGB"))
     head, *rest = imgs
-    head.save(output, save_all=True, append_images=rest)
+    try:
+        head.save(output, save_all=True, append_images=rest)
+    finally:
+        for image in imgs:
+            image.close()
     console.print(f"[green]Wrote[/green] {output} ({len(inputs)} pages)")
 
 

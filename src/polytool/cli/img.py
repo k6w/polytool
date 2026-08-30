@@ -246,11 +246,9 @@ def cmd_exif(
         # Fallback: re-encode without EXIF via Pillow
         from PIL import Image
 
-        img = Image.open(source)
-        data = list(img.getdata())
-        clean = Image.new(img.mode, img.size)
-        clean.putdata(data)
-        clean.save(out)
+        with Image.open(source) as img:
+            clean = img.copy()
+        clean.save(out, exif=b"")
     console.print(f"[green]Stripped[/green] EXIF -> {out}")
 
 
@@ -293,7 +291,7 @@ def cmd_watermark(
         str,
         typer.Option(
             "--position",
-            help="topleft | topright | bottomleft | bottomright | center",
+            help="top-left | top-right | bottom-left | bottom-right | center",
         ),
     ] = "bottomright",
     size: Annotated[int, typer.Option("--size", help="Font size (px)")] = 48,
@@ -328,12 +326,13 @@ def cmd_watermark(
         "bottomright": (w - tw - pad, h - th - pad),
         "center": ((w - tw) // 2, (h - th) // 2),
     }
-    if position not in positions:
+    position_key = position.lower().replace("-", "").replace("_", "")
+    if position_key not in positions:
         raise PolytoolError(
             f"Unknown position {position!r}",
-            hint=f"One of: {', '.join(positions)}",
+            hint="One of: top-left, top-right, bottom-left, bottom-right, center",
         )
-    x, y = positions[position]
+    x, y = positions[position_key]
     alpha = int(255 * max(0.0, min(1.0, opacity)))
     draw.text((x, y), text, font=font, fill=(255, 255, 255, alpha))
     out_img = Image.alpha_composite(img, overlay)

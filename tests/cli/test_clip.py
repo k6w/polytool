@@ -9,8 +9,12 @@ def _clipboard_available() -> bool:
     try:
         import pyperclip
 
-        pyperclip.paste()
-        return True
+        original = pyperclip.paste()
+        probe = "polytool-clipboard-availability-probe"
+        pyperclip.copy(probe)
+        available = pyperclip.paste() == probe
+        pyperclip.copy(original)
+        return available
     except Exception:
         return False
 
